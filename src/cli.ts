@@ -278,11 +278,10 @@ async function interactiveMode(): Promise<void> {
 }
 
 /**
- * @description CLIのエントリーポイント
+ * @description CLIを実行する
+ * @param args - コマンドライン引数
  */
-async function main(): Promise<void> {
-  const args = process.argv.slice(2);
-
+export async function runCli(args: string[]): Promise<void> {
   if (args.length === 0) {
     await interactiveMode();
     process.exit(0);
@@ -336,8 +335,3 @@ async function main(): Promise<void> {
       process.exit(1);
   }
 }
-
-main().catch((error) => {
-  console.error("エラー:", error.message);
-  process.exit(1);
-});

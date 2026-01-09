@@ -7,9 +7,9 @@ import { TwitchAuth } from "./twitch/auth";
 import { logger } from "./utils/logger";
 
 /**
- * @description アプリケーションのエントリーポイント
+ * @description 監視を開始する
  */
-async function main() {
+export async function startMonitor(): Promise<void> {
   logger.info("Stream Notifier 起動中...");
 
   const config = await loadConfig();
@@ -47,8 +47,3 @@ async function main() {
     process.exit(0);
   });
 }
-
-main().catch((error) => {
-  logger.error("致命的なエラー:", error);
-  process.exit(1);
-});
