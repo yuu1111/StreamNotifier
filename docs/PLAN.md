@@ -100,7 +100,7 @@ StreamNotifier/
 - `src/discord/webhook.ts` - Webhook送信
 
 ### Step 7: 統合
-- `src/index.ts` - エントリーポイント・Graceful shutdown
+- `src/main.ts` - エントリーポイント・Graceful shutdown
 
 ## 通知タイプ
 
@@ -122,6 +122,6 @@ StreamNotifier/
 
 1. Twitch Developer Consoleでアプリ作成、Client ID/Secretを取得
 2. `config.example.json` を `config.json` にコピーして設定
-3. `bun run src/index.ts` で起動
+3. `bun run src/main.ts` で起動
 4. 対象配信者の配信開始/終了/タイトル変更/ゲーム変更を待つか、テスト用配信者で確認
 5. Discord WebHookに通知が届くことを確認

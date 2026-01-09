@@ -1,5 +1,5 @@
-import type { TwitchTokenResponse } from "./types";
 import { logger } from "../utils/logger";
+import type { TwitchTokenResponse } from "./types";
 
 export class TwitchAuth {
   private accessToken: string | null = null;

@@ -1,9 +1,9 @@
 import { loadConfig } from "./config/loader";
-import { TwitchAuth } from "./twitch/auth";
-import { TwitchAPI } from "./twitch/api";
-import { Poller } from "./monitor/poller";
 import { buildEmbed } from "./discord/embed";
 import { sendToMultipleWebhooks } from "./discord/webhook";
+import { Poller } from "./monitor/poller";
+import { TwitchAPI } from "./twitch/api";
+import { TwitchAuth } from "./twitch/auth";
 import { logger } from "./utils/logger";
 
 async function main() {

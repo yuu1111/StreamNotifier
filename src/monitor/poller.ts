@@ -1,9 +1,9 @@
 import type { Config, StreamerConfig } from "../config/schema";
 import type { TwitchAPI } from "../twitch/api";
 import type { TwitchUser } from "../twitch/types";
-import { StateManager, type StreamerState } from "./state";
-import { detectChanges, type DetectedChange } from "./detector";
 import { logger } from "../utils/logger";
+import { type DetectedChange, detectChanges } from "./detector";
+import { StateManager, type StreamerState } from "./state";
 
 export class Poller {
   private intervalId: Timer | null = null;
@@ -20,10 +20,7 @@ export class Poller {
     await this.initializeUserCache();
     await this.poll();
 
-    this.intervalId = setInterval(
-      () => this.poll(),
-      this.config.polling.intervalSeconds * 1000
-    );
+    this.intervalId = setInterval(() => this.poll(), this.config.polling.intervalSeconds * 1000);
 
     logger.info(
       `ポーリング開始 (間隔: ${this.config.polling.intervalSeconds}秒, 配信者: ${this.config.streamers.length}人)`
@@ -63,9 +60,8 @@ export class Poller {
         }
       }
 
-      const channels = offlineUserIds.length > 0
-        ? await this.api.getChannels(offlineUserIds)
-        : new Map();
+      const channels =
+        offlineUserIds.length > 0 ? await this.api.getChannels(offlineUserIds) : new Map();
 
       for (const streamerConfig of this.config.streamers) {
         const username = streamerConfig.username.toLowerCase();
@@ -92,9 +88,7 @@ export class Poller {
         const oldState = this.stateManager.getState(username);
         const changes = detectChanges(oldState, newState);
 
-        const filteredChanges = changes.filter(
-          (c) => streamerConfig.notifications[c.type]
-        );
+        const filteredChanges = changes.filter((c) => streamerConfig.notifications[c.type]);
 
         if (filteredChanges.length > 0) {
           await this.onChanges(filteredChanges, streamerConfig);

@@ -1,5 +1,5 @@
-import type { DetectedChange } from "../monitor/detector";
 import type { ChangeType } from "../config/schema";
+import type { DetectedChange } from "../monitor/detector";
 
 export interface DiscordEmbed {
   title: string;

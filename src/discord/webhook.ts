@@ -1,5 +1,5 @@
-import type { DiscordEmbed } from "./embed";
 import { logger } from "../utils/logger";
+import type { DiscordEmbed } from "./embed";
 
 export interface WebhookPayload {
   embeds: DiscordEmbed[];
@@ -7,10 +7,7 @@ export interface WebhookPayload {
   avatar_url?: string;
 }
 
-export async function sendWebhook(
-  webhookUrl: string,
-  embed: DiscordEmbed
-): Promise<void> {
+export async function sendWebhook(webhookUrl: string, embed: DiscordEmbed): Promise<void> {
   const payload: WebhookPayload = {
     embeds: [embed],
   };
@@ -33,9 +30,7 @@ export async function sendToMultipleWebhooks(
   webhookUrls: string[],
   embed: DiscordEmbed
 ): Promise<void> {
-  const results = await Promise.allSettled(
-    webhookUrls.map((url) => sendWebhook(url, embed))
-  );
+  const results = await Promise.allSettled(webhookUrls.map((url) => sendWebhook(url, embed)));
 
   for (let i = 0; i < results.length; i++) {
     const result = results[i];

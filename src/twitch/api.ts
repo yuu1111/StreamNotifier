@@ -1,11 +1,6 @@
-import type { TwitchAuth } from "./auth";
-import type {
-  TwitchUser,
-  TwitchStream,
-  TwitchChannel,
-  TwitchApiResponse,
-} from "./types";
 import { logger } from "../utils/logger";
+import type { TwitchAuth } from "./auth";
+import type { TwitchApiResponse, TwitchChannel, TwitchStream, TwitchUser } from "./types";
 
 export class TwitchAPI {
   private readonly baseUrl = "https://api.twitch.tv/helix";

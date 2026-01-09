@@ -1,5 +1,5 @@
-import type { StreamerState } from "./state";
 import type { ChangeType } from "../config/schema";
+import type { StreamerState } from "./state";
 
 export interface DetectedChange {
   type: ChangeType;
