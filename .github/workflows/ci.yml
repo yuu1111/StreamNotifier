@@ -18,11 +18,8 @@ jobs:
 
       - run: bun install
 
-      - name: Lint
-        run: bun run lint
-
-      - name: Format check
-        run: bunx biome format --check ./src
+      - name: Lint & Format
+        run: bunx biome check ./src
 
       - name: Type check
         run: bun run typecheck
