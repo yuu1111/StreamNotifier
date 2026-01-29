@@ -1,5 +1,13 @@
+import * as path from "node:path";
 import * as readline from "node:readline";
 import type { Config, StreamerConfig } from "./config/schema";
+
+/**
+ * @description 実行ファイル名を取得
+ */
+function getExeName(): string {
+  return path.basename(process.argv[1] ?? "stream-notifier");
+}
 
 /**
  * @description 設定ファイルのパス
@@ -39,13 +47,16 @@ async function saveConfig(config: Config): Promise<void> {
  * @description CLIの使い方を表示
  */
 function printUsage(): void {
+  const exe = getExeName();
   console.log(`
 使い方:
-  bun run cli add <username>              配信者を追加
-  bun run cli remove <username>           配信者を削除
-  bun run cli list                        配信者一覧を表示
-  bun run cli webhook add <username>      Webhookを追加
-  bun run cli webhook remove <username>   Webhookを削除
+  ${exe}                           監視を開始
+  ${exe} add <username>            配信者を追加
+  ${exe} remove <username>         配信者を削除
+  ${exe} list                      配信者一覧を表示
+  ${exe} webhook add <username>    Webhookを追加
+  ${exe} webhook remove <username> Webhookを削除
+  ${exe} help                      このヘルプを表示
 `);
 }
 
@@ -293,56 +304,66 @@ async function interactiveMode(): Promise<void> {
  * @param args - コマンドライン引数
  */
 export async function runCli(args: string[]): Promise<void> {
-  if (args.length === 0) {
-    await interactiveMode();
-    process.exit(0);
-  }
+  try {
+    if (args.length === 0) {
+      await interactiveMode();
+      return;
+    }
 
-  const command = args[0];
+    const command = args[0];
 
-  switch (command) {
-    case "add":
-      if (!args[1]) {
-        console.error("エラー: ユーザー名を指定してください");
-        process.exit(1);
-      }
-      await addStreamer(args[1]);
-      break;
-
-    case "remove":
-      if (!args[1]) {
-        console.error("エラー: ユーザー名を指定してください");
-        process.exit(1);
-      }
-      await removeStreamer(args[1]);
-      break;
-
-    case "list":
-      await listStreamers();
-      break;
-
-    case "webhook":
-      if (args[1] === "add") {
-        if (!args[2]) {
+    switch (command) {
+      case "add":
+        if (!args[1]) {
           console.error("エラー: ユーザー名を指定してください");
           process.exit(1);
         }
-        await addWebhook(args[2]);
-      } else if (args[1] === "remove") {
-        if (!args[2]) {
+        await addStreamer(args[1]);
+        break;
+
+      case "remove":
+        if (!args[1]) {
           console.error("エラー: ユーザー名を指定してください");
           process.exit(1);
         }
-        await removeWebhook(args[2]);
-      } else {
-        console.error("エラー: webhook add または webhook remove を指定してください");
-        process.exit(1);
-      }
-      break;
+        await removeStreamer(args[1]);
+        break;
 
-    default:
-      console.error(`不明なコマンド: ${command}`);
-      printUsage();
-      process.exit(1);
+      case "list":
+        await listStreamers();
+        break;
+
+      case "webhook":
+        if (args[1] === "add") {
+          if (!args[2]) {
+            console.error("エラー: ユーザー名を指定してください");
+            process.exit(1);
+          }
+          await addWebhook(args[2]);
+        } else if (args[1] === "remove") {
+          if (!args[2]) {
+            console.error("エラー: ユーザー名を指定してください");
+            process.exit(1);
+          }
+          await removeWebhook(args[2]);
+        } else {
+          console.error("エラー: webhook add または webhook remove を指定してください");
+          process.exit(1);
+        }
+        break;
+
+      case "help":
+      case "--help":
+      case "-h":
+        printUsage();
+        break;
+
+      default:
+        console.error(`不明なコマンド: ${command}`);
+        printUsage();
+        process.exit(1);
+    }
+  } finally {
+    rl.close();
   }
 }
