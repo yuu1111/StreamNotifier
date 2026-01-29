@@ -11,6 +11,7 @@ import { logger } from "./utils/logger";
  * @description 監視を開始する
  */
 async function startMonitor(): Promise<void> {
+  process.title = "Stream Notifier";
   logger.info("Stream Notifier 起動中...");
 
   const config = await loadConfig();
