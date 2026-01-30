@@ -19,7 +19,15 @@ export async function loadConfig(): Promise<Config> {
     );
   }
 
-  const json = await file.json();
+  let json: unknown;
+  try {
+    json = await file.json();
+  } catch {
+    throw new Error(
+      `設定ファイルのJSON構文エラー: ${CONFIG_PATH}\n有効なJSON形式か確認してください。`
+    );
+  }
+
   const result = ConfigSchema.safeParse(json);
 
   if (!result.success) {
