@@ -15,12 +15,22 @@ function getExeName(): string {
 const CONFIG_PATH = "./config.json";
 
 /**
- * @description 標準入出力のreadlineインターフェース
+ * @description 標準入出力のreadlineインターフェース (遅延初期化)
  */
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout,
-});
+let rl: readline.Interface | null = null;
+
+/**
+ * @description readlineインターフェースを取得 (必要時に初期化)
+ */
+function getReadline(): readline.Interface {
+  if (!rl) {
+    rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout,
+    });
+  }
+  return rl;
+}
 
 /**
  * @description 設定ファイルを読み込む
@@ -67,7 +77,7 @@ function printUsage(): void {
  */
 function promptInput(message: string): Promise<string> {
   return new Promise((resolve) => {
-    rl.question(message, (answer: string) => {
+    getReadline().question(message, (answer: string) => {
       resolve(answer.trim());
     });
   });
@@ -364,6 +374,6 @@ export async function runCli(args: string[]): Promise<void> {
         process.exit(1);
     }
   } finally {
-    rl.close();
+    rl?.close();
   }
 }
