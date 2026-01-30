@@ -1,20 +1,30 @@
-import type { LogLevel } from "../config/schema";
+import { LogLevels, type LogLevel } from "../config/schema";
 
 /**
  * @description ログレベルの優先度マッピング
  */
-const LOG_LEVELS: Record<LogLevel, number> = {
-  debug: 0,
-  info: 1,
-  warn: 2,
-  error: 3,
+const LOG_LEVEL_PRIORITY: Record<LogLevel, number> = {
+  [LogLevels.Debug]: 0,
+  [LogLevels.Info]: 1,
+  [LogLevels.Warn]: 2,
+  [LogLevels.Error]: 3,
+};
+
+/**
+ * @description ログレベルごとのコンソール出力関数
+ */
+const LOG_FUNCTIONS: Record<LogLevel, (...args: unknown[]) => void> = {
+  [LogLevels.Debug]: console.log,
+  [LogLevels.Info]: console.log,
+  [LogLevels.Warn]: console.warn,
+  [LogLevels.Error]: console.error,
 };
 
 /**
  * @description レベル別ログ出力を行うロガー
  */
 class Logger {
-  private level: LogLevel = "info";
+  private level: LogLevel = LogLevels.Info;
 
   /**
    * @description ログ出力レベルを設定する
@@ -30,7 +40,7 @@ class Logger {
    * @returns 出力すべき場合true
    */
   private shouldLog(level: LogLevel): boolean {
-    return LOG_LEVELS[level] >= LOG_LEVELS[this.level];
+    return LOG_LEVEL_PRIORITY[level] >= LOG_LEVEL_PRIORITY[this.level];
   }
 
   /**
@@ -45,14 +55,25 @@ class Logger {
   }
 
   /**
+   * @description 指定レベルでログを出力する共通処理
+   * @param level - ログレベル
+   * @param message - メッセージ
+   * @param args - 追加の引数
+   */
+  private log(level: LogLevel, message: string, args: unknown[]): void {
+    if (!this.shouldLog(level)) return;
+
+    const logFn = LOG_FUNCTIONS[level];
+    logFn(this.format(level, message), ...args);
+  }
+
+  /**
    * @description デバッグログを出力する
    * @param message - メッセージ
    * @param args - 追加の引数
    */
   debug(message: string, ...args: unknown[]): void {
-    if (this.shouldLog("debug")) {
-      console.log(this.format("debug", message), ...args);
-    }
+    this.log(LogLevels.Debug, message, args);
   }
 
   /**
@@ -61,9 +82,7 @@ class Logger {
    * @param args - 追加の引数
    */
   info(message: string, ...args: unknown[]): void {
-    if (this.shouldLog("info")) {
-      console.log(this.format("info", message), ...args);
-    }
+    this.log(LogLevels.Info, message, args);
   }
 
   /**
@@ -72,9 +91,7 @@ class Logger {
    * @param args - 追加の引数
    */
   warn(message: string, ...args: unknown[]): void {
-    if (this.shouldLog("warn")) {
-      console.warn(this.format("warn", message), ...args);
-    }
+    this.log(LogLevels.Warn, message, args);
   }
 
   /**
@@ -83,9 +100,7 @@ class Logger {
    * @param args - 追加の引数
    */
   error(message: string, ...args: unknown[]): void {
-    if (this.shouldLog("error")) {
-      console.error(this.format("error", message), ...args);
-    }
+    this.log(LogLevels.Error, message, args);
   }
 }
 

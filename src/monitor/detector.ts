@@ -1,4 +1,4 @@
-import type { ChangeType } from "../config/schema";
+import { ChangeTypes, type ChangeType } from "../config/schema";
 import type { StreamerState } from "./state";
 
 /**
@@ -50,7 +50,7 @@ export function detectChanges(
 
   if (!oldState.isLive && newState.isLive) {
     changes.push({
-      type: "online",
+      type: ChangeTypes.Online,
       streamer: newState.username,
       currentState: newState,
     });
@@ -58,7 +58,7 @@ export function detectChanges(
 
   if (oldState.isLive && !newState.isLive) {
     changes.push({
-      type: "offline",
+      type: ChangeTypes.Offline,
       streamer: newState.username,
       streamStartedAt: oldState.startedAt ?? undefined,
       currentState: newState,
@@ -67,7 +67,7 @@ export function detectChanges(
 
   if (oldState.title !== newState.title && newState.title) {
     changes.push({
-      type: "titleChange",
+      type: ChangeTypes.TitleChange,
       streamer: newState.username,
       oldValue: oldState.title,
       newValue: newState.title,
@@ -77,7 +77,7 @@ export function detectChanges(
 
   if (oldState.gameId !== newState.gameId) {
     changes.push({
-      type: "gameChange",
+      type: ChangeTypes.GameChange,
       streamer: newState.username,
       oldValue: oldState.gameName,
       newValue: newState.gameName,

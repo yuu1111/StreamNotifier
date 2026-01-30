@@ -1,14 +1,26 @@
-import type { ChangeType } from "../config/schema";
+import { ChangeTypes, ThumbnailSize, type ChangeType } from "../config/schema";
 import type { DetectedChange } from "../monitor/detector";
 
 /**
  * @description タイトル/ゲーム変更イベントの種別一覧
  */
 const CHANGE_EVENT_TYPES: ReadonlySet<ChangeType> = new Set([
-  "titleChange",
-  "gameChange",
-  "titleAndGameChange",
+  ChangeTypes.TitleChange,
+  ChangeTypes.GameChange,
+  ChangeTypes.TitleAndGameChange,
 ]);
+
+/**
+ * @description Discord Embedのフィールド
+ * @property name - フィールド名
+ * @property value - フィールド値
+ * @property inline - インライン表示 @optional
+ */
+export interface EmbedField {
+  name: string;
+  value: string;
+  inline?: boolean;
+}
 
 /**
  * @description Discord Embed構造
@@ -30,7 +42,7 @@ export interface DiscordEmbed {
   color: number;
   thumbnail?: { url: string };
   image?: { url: string };
-  fields?: { name: string; value: string; inline?: boolean }[];
+  fields?: EmbedField[];
   timestamp?: string;
   footer?: { text: string };
   author?: { name: string; icon_url?: string };
@@ -40,22 +52,22 @@ export interface DiscordEmbed {
  * @description 変更種別ごとのEmbed色(10進数)
  */
 const COLORS: Record<ChangeType, number> = {
-  online: 0x9146ff,
-  offline: 0x808080,
-  titleChange: 0x00ff00,
-  gameChange: 0xff9900,
-  titleAndGameChange: 0x00ccff,
+  [ChangeTypes.Online]: 0x9146ff,
+  [ChangeTypes.Offline]: 0x808080,
+  [ChangeTypes.TitleChange]: 0x00ff00,
+  [ChangeTypes.GameChange]: 0xff9900,
+  [ChangeTypes.TitleAndGameChange]: 0x00ccff,
 };
 
 /**
  * @description 変更種別ごとのEmbedタイトル
  */
 const TITLES: Record<ChangeType, string> = {
-  online: "配信開始",
-  offline: "配信終了",
-  titleChange: "タイトル変更",
-  gameChange: "ゲーム変更",
-  titleAndGameChange: "タイトル・ゲーム変更",
+  [ChangeTypes.Online]: "配信開始",
+  [ChangeTypes.Offline]: "配信終了",
+  [ChangeTypes.TitleChange]: "タイトル変更",
+  [ChangeTypes.GameChange]: "ゲーム変更",
+  [ChangeTypes.TitleAndGameChange]: "タイトル・ゲーム変更",
 };
 
 /**
@@ -121,9 +133,9 @@ export function buildEmbed(change: DetectedChange): DiscordEmbed {
   };
 
   switch (type) {
-    case "online": {
+    case ChangeTypes.Online: {
       embed.description = currentState.title || "(タイトルなし)";
-      const fields: { name: string; value: string; inline?: boolean }[] = [
+      const fields: EmbedField[] = [
         {
           name: "ゲーム",
           value: currentState.gameName || "(未設定)",
@@ -148,19 +160,19 @@ export function buildEmbed(change: DetectedChange): DiscordEmbed {
       embed.fields = fields;
       if (currentState.thumbnailUrl) {
         const thumbnailUrl = currentState.thumbnailUrl
-          .replace("{width}", "440")
-          .replace("{height}", "248");
+          .replace("{width}", ThumbnailSize.Width)
+          .replace("{height}", ThumbnailSize.Height);
         embed.image = { url: thumbnailUrl };
       }
       break;
     }
 
-    case "offline": {
+    case ChangeTypes.Offline: {
       const endTime = new Date().toLocaleTimeString("ja-JP", {
         hour: "2-digit",
         minute: "2-digit",
       });
-      const fields: { name: string; value: string; inline?: boolean }[] = [];
+      const fields: EmbedField[] = [];
 
       if (change.streamStartedAt) {
         const startTime = new Date(change.streamStartedAt).toLocaleTimeString("ja-JP", {
@@ -194,21 +206,21 @@ export function buildEmbed(change: DetectedChange): DiscordEmbed {
       break;
     }
 
-    case "titleChange":
+    case ChangeTypes.TitleChange:
       embed.fields = [
         { name: "変更前", value: change.oldValue || "(なし)", inline: false },
         { name: "変更後", value: change.newValue || "(なし)", inline: false },
       ];
       break;
 
-    case "gameChange":
+    case ChangeTypes.GameChange:
       embed.fields = [
         { name: "変更前", value: change.oldValue || "(未設定)", inline: true },
         { name: "変更後", value: change.newValue || "(未設定)", inline: true },
       ];
       break;
 
-    case "titleAndGameChange":
+    case ChangeTypes.TitleAndGameChange:
       embed.fields = [
         {
           name: "タイトル",

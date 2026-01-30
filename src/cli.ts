@@ -1,6 +1,6 @@
 import * as path from "node:path";
 import * as readline from "node:readline";
-import type { Config, StreamerConfig } from "./config/schema";
+import { ChangeTypes, WEBHOOK_URL_PREFIX, type Config, type StreamerConfig } from "./config/schema";
 
 /**
  * @description 実行ファイル名を取得
@@ -89,7 +89,7 @@ function promptInput(message: string): Promise<string> {
  * @returns 有効な形式の場合true
  */
 function validateWebhookUrl(url: string): boolean {
-  return url.startsWith("https://discord.com/api/webhooks/");
+  return url.startsWith(WEBHOOK_URL_PREFIX);
 }
 
 /**
@@ -133,10 +133,10 @@ async function addStreamer(username: string): Promise<void> {
   const newStreamer: StreamerConfig = {
     username,
     notifications: {
-      online: true,
-      offline: true,
-      titleChange: true,
-      gameChange: true,
+      [ChangeTypes.Online]: true,
+      [ChangeTypes.Offline]: true,
+      [ChangeTypes.TitleChange]: true,
+      [ChangeTypes.GameChange]: true,
     },
     webhooks: [webhookUrl],
   };
@@ -260,42 +260,53 @@ async function promptUsername(): Promise<string> {
 }
 
 /**
+ * @description 対話モードのメニュー項目
+ * @property key - メニュー選択キー
+ * @property label - 表示ラベル
+ * @property action - 実行するアクション
+ */
+interface MenuItem {
+  key: string;
+  label: string;
+  action: () => Promise<void>;
+}
+
+/**
+ * @description 対話モードのメニュー定義
+ */
+const MENU_ITEMS: MenuItem[] = [
+  { key: "1", label: "配信者を追加", action: async () => addStreamer(await promptUsername()) },
+  { key: "2", label: "配信者を削除", action: async () => removeStreamer(await promptUsername()) },
+  { key: "3", label: "配信者一覧を表示", action: () => listStreamers() },
+  { key: "4", label: "Webhookを追加", action: async () => addWebhook(await promptUsername()) },
+  { key: "5", label: "Webhookを削除", action: async () => removeWebhook(await promptUsername()) },
+];
+
+/**
  * @description 対話モードでCLIを実行
  */
 async function interactiveMode(): Promise<void> {
   console.log("Stream Notifier CLI\n");
-  console.log("1. 配信者を追加");
-  console.log("2. 配信者を削除");
-  console.log("3. 配信者一覧を表示");
-  console.log("4. Webhookを追加");
-  console.log("5. Webhookを削除");
+
+  for (const item of MENU_ITEMS) {
+    console.log(`${item.key}. ${item.label}`);
+  }
   console.log("0. 終了\n");
 
   const choice = await promptInput("選択: ");
 
-  switch (choice) {
-    case "1":
-      await addStreamer(await promptUsername());
-      break;
-    case "2":
-      await removeStreamer(await promptUsername());
-      break;
-    case "3":
-      await listStreamers();
-      break;
-    case "4":
-      await addWebhook(await promptUsername());
-      break;
-    case "5":
-      await removeWebhook(await promptUsername());
-      break;
-    case "0":
-      console.log("終了します");
-      break;
-    default:
-      console.error("無効な選択です");
-      process.exit(1);
+  if (choice === "0") {
+    console.log("終了します");
+    return;
   }
+
+  const selectedItem = MENU_ITEMS.find((item) => item.key === choice);
+  if (!selectedItem) {
+    console.error("無効な選択です");
+    process.exit(1);
+  }
+
+  await selectedItem.action();
 }
 
 /**

@@ -1,20 +1,54 @@
 import * as z from "zod";
 
 /**
+ * @description 通知タイプの定数
+ */
+export const ChangeTypes = {
+  Online: "online",
+  Offline: "offline",
+  TitleChange: "titleChange",
+  GameChange: "gameChange",
+  TitleAndGameChange: "titleAndGameChange",
+} as const;
+
+/**
+ * @description ログレベルの定数
+ */
+export const LogLevels = {
+  Debug: "debug",
+  Info: "info",
+  Warn: "warn",
+  Error: "error",
+} as const;
+
+/**
+ * @description サムネイル画像のサイズ
+ */
+export const ThumbnailSize = {
+  Width: "440",
+  Height: "248",
+} as const;
+
+/**
+ * @description Discord Webhook URLのプレフィックス
+ */
+export const WEBHOOK_URL_PREFIX = "https://discord.com/api/webhooks/";
+
+/**
  * @description Discord Webhook URLのバリデーションスキーマ
  */
 const WebhookUrlSchema = z
   .string()
-  .startsWith("https://discord.com/api/webhooks/", "Discord Webhook URLの形式が無効です");
+  .startsWith(WEBHOOK_URL_PREFIX, "Discord Webhook URLの形式が無効です");
 
 /**
  * @description 通知種別ごとの有効/無効設定スキーマ
  */
 const NotificationSettingsSchema = z.object({
-  online: z.boolean(),
-  offline: z.boolean(),
-  titleChange: z.boolean(),
-  gameChange: z.boolean(),
+  [ChangeTypes.Online]: z.boolean(),
+  [ChangeTypes.Offline]: z.boolean(),
+  [ChangeTypes.TitleChange]: z.boolean(),
+  [ChangeTypes.GameChange]: z.boolean(),
 });
 
 /**
@@ -39,7 +73,7 @@ export const ConfigSchema = z.object({
   }),
   streamers: z.array(StreamerConfigSchema).min(1, "streamersに1人以上の配信者を設定してください"),
   log: z.object({
-    level: z.enum(["debug", "info", "warn", "error"]),
+    level: z.enum([LogLevels.Debug, LogLevels.Info, LogLevels.Warn, LogLevels.Error]),
   }),
 });
 
@@ -61,9 +95,9 @@ export type NotificationSettings = z.infer<typeof NotificationSettingsSchema>;
 /**
  * @description ログ出力レベル
  */
-export type LogLevel = "debug" | "info" | "warn" | "error";
+export type LogLevel = (typeof LogLevels)[keyof typeof LogLevels];
 
 /**
  * @description 変更イベントの種別
  */
-export type ChangeType = keyof NotificationSettings | "titleAndGameChange";
+export type ChangeType = (typeof ChangeTypes)[keyof typeof ChangeTypes];
