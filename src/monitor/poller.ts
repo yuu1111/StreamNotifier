@@ -1,6 +1,6 @@
 import type { Config, StreamerConfig } from "../config/schema";
 import type { TwitchAPI } from "../twitch/api";
-import type { TwitchUser } from "../twitch/types";
+import type { TwitchChannel, TwitchStream, TwitchUser } from "../twitch/types";
 import { logger } from "../utils/logger";
 import { type DetectedChange, detectChanges } from "./detector";
 import { StateManager, type StreamerState } from "./state";
@@ -105,6 +105,46 @@ export class Poller {
   }
 
   /**
+   * @description ユーザー情報から配信者状態を構築
+   * @param user - Twitchユーザー情報
+   * @param stream - 配信情報(配信中の場合)
+   * @param channel - チャンネル情報(オフラインの場合)
+   * @returns 構築された配信者状態
+   */
+  private buildStreamerState(
+    user: TwitchUser,
+    stream: TwitchStream | undefined,
+    channel: TwitchChannel | undefined
+  ): StreamerState {
+    return {
+      userId: user.id,
+      username: user.login,
+      displayName: user.display_name,
+      profileImageUrl: user.profile_image_url,
+      isLive: !!stream,
+      title: stream?.title ?? channel?.title ?? "",
+      gameId: stream?.game_id ?? channel?.game_id ?? "",
+      gameName: stream?.game_name ?? channel?.game_name ?? "",
+      startedAt: stream?.started_at ?? null,
+      thumbnailUrl: stream?.thumbnail_url ?? null,
+      viewerCount: stream?.viewer_count ?? 0,
+    };
+  }
+
+  /**
+   * @description 変更が通知設定で有効かどうかを判定
+   * @param change - 検出された変更
+   * @param config - 配信者の通知設定
+   * @returns 通知が有効な場合true
+   */
+  private isNotificationEnabled(change: DetectedChange, config: StreamerConfig): boolean {
+    if (change.type === "titleAndGameChange") {
+      return config.notifications.titleChange || config.notifications.gameChange;
+    }
+    return config.notifications[change.type];
+  }
+
+  /**
    * @description 全配信者の状態をポーリングして変更を検出
    */
   private async poll(): Promise<void> {
@@ -131,20 +171,7 @@ export class Poller {
 
         const stream = streams.get(username);
         const channel = channels.get(username);
-
-        const newState: StreamerState = {
-          userId: user.id,
-          username: user.login,
-          displayName: user.display_name,
-          profileImageUrl: user.profile_image_url,
-          isLive: !!stream,
-          title: stream?.title ?? channel?.title ?? "",
-          gameId: stream?.game_id ?? channel?.game_id ?? "",
-          gameName: stream?.game_name ?? channel?.game_name ?? "",
-          startedAt: stream?.started_at ?? null,
-          thumbnailUrl: stream?.thumbnail_url ?? null,
-          viewerCount: stream?.viewer_count ?? 0,
-        };
+        const newState = this.buildStreamerState(user, stream, channel);
 
         const oldState = this.stateManager.getState(username);
         const isInitialPoll = !oldState;
@@ -181,14 +208,9 @@ export class Poller {
           }
         }
 
-        const filteredChanges = changes.filter((c) => {
-          if (c.type === "titleAndGameChange") {
-            return (
-              streamerConfig.notifications.titleChange || streamerConfig.notifications.gameChange
-            );
-          }
-          return streamerConfig.notifications[c.type];
-        });
+        const filteredChanges = changes.filter((c) =>
+          this.isNotificationEnabled(c, streamerConfig)
+        );
 
         if (filteredChanges.length > 0) {
           await this.onChanges(filteredChanges, streamerConfig);

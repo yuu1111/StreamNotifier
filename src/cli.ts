@@ -247,6 +247,19 @@ async function removeWebhook(username: string): Promise<void> {
 }
 
 /**
+ * @description ユーザー名を対話的に取得して検証
+ * @returns 入力されたユーザー名
+ */
+async function promptUsername(): Promise<string> {
+  const username = await promptInput("ユーザー名: ");
+  if (!username) {
+    console.error("エラー: ユーザー名を入力してください");
+    process.exit(1);
+  }
+  return username;
+}
+
+/**
  * @description 対話モードでCLIを実行
  */
 async function interactiveMode(): Promise<void> {
@@ -261,45 +274,21 @@ async function interactiveMode(): Promise<void> {
   const choice = await promptInput("選択: ");
 
   switch (choice) {
-    case "1": {
-      const username = await promptInput("ユーザー名: ");
-      if (!username) {
-        console.error("エラー: ユーザー名を入力してください");
-        process.exit(1);
-      }
-      await addStreamer(username);
+    case "1":
+      await addStreamer(await promptUsername());
       break;
-    }
-    case "2": {
-      const username = await promptInput("ユーザー名: ");
-      if (!username) {
-        console.error("エラー: ユーザー名を入力してください");
-        process.exit(1);
-      }
-      await removeStreamer(username);
+    case "2":
+      await removeStreamer(await promptUsername());
       break;
-    }
     case "3":
       await listStreamers();
       break;
-    case "4": {
-      const username = await promptInput("ユーザー名: ");
-      if (!username) {
-        console.error("エラー: ユーザー名を入力してください");
-        process.exit(1);
-      }
-      await addWebhook(username);
+    case "4":
+      await addWebhook(await promptUsername());
       break;
-    }
-    case "5": {
-      const username = await promptInput("ユーザー名: ");
-      if (!username) {
-        console.error("エラー: ユーザー名を入力してください");
-        process.exit(1);
-      }
-      await removeWebhook(username);
+    case "5":
+      await removeWebhook(await promptUsername());
       break;
-    }
     case "0":
       console.log("終了します");
       break;
@@ -307,6 +296,19 @@ async function interactiveMode(): Promise<void> {
       console.error("無効な選択です");
       process.exit(1);
   }
+}
+
+/**
+ * @description ユーザー名引数が必須であることを検証
+ * @param username - ユーザー名引数
+ * @returns 検証済みユーザー名
+ */
+function requireUsername(username: string | undefined): string {
+  if (!username) {
+    console.error("エラー: ユーザー名を指定してください");
+    process.exit(1);
+  }
+  return username;
 }
 
 /**
@@ -324,19 +326,11 @@ export async function runCli(args: string[]): Promise<void> {
 
     switch (command) {
       case "add":
-        if (!args[1]) {
-          console.error("エラー: ユーザー名を指定してください");
-          process.exit(1);
-        }
-        await addStreamer(args[1]);
+        await addStreamer(requireUsername(args[1]));
         break;
 
       case "remove":
-        if (!args[1]) {
-          console.error("エラー: ユーザー名を指定してください");
-          process.exit(1);
-        }
-        await removeStreamer(args[1]);
+        await removeStreamer(requireUsername(args[1]));
         break;
 
       case "list":
@@ -345,17 +339,9 @@ export async function runCli(args: string[]): Promise<void> {
 
       case "webhook":
         if (args[1] === "add") {
-          if (!args[2]) {
-            console.error("エラー: ユーザー名を指定してください");
-            process.exit(1);
-          }
-          await addWebhook(args[2]);
+          await addWebhook(requireUsername(args[2]));
         } else if (args[1] === "remove") {
-          if (!args[2]) {
-            console.error("エラー: ユーザー名を指定してください");
-            process.exit(1);
-          }
-          await removeWebhook(args[2]);
+          await removeWebhook(requireUsername(args[2]));
         } else {
           console.error("エラー: webhook add または webhook remove を指定してください");
           process.exit(1);

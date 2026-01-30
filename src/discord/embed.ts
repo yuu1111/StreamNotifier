@@ -2,6 +2,15 @@ import type { ChangeType } from "../config/schema";
 import type { DetectedChange } from "../monitor/detector";
 
 /**
+ * @description タイトル/ゲーム変更イベントの種別一覧
+ */
+const CHANGE_EVENT_TYPES: ReadonlySet<ChangeType> = new Set([
+  "titleChange",
+  "gameChange",
+  "titleAndGameChange",
+]);
+
+/**
  * @description Discord Embed構造
  * @property title - Embedのタイトル
  * @property description - Embedの説明 @optional
@@ -216,9 +225,7 @@ export function buildEmbed(change: DetectedChange): DiscordEmbed {
   }
 
   // タイトル/ゲーム変更時は配信中であればfooterを設定
-  const isChangeEvent =
-    type === "titleChange" || type === "gameChange" || type === "titleAndGameChange";
-  if (isChangeEvent && currentState.isLive && !embed.footer) {
+  if (CHANGE_EVENT_TYPES.has(type) && currentState.isLive && !embed.footer) {
     embed.footer = { text: "配信中" };
   }
 

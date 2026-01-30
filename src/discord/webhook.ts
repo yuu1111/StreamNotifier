@@ -70,9 +70,9 @@ export async function sendToMultipleWebhooks(
     webhookUrls.map((url) => sendWebhook(url, embed, streamer))
   );
 
-  results.forEach((result, index) => {
+  for (const [index, result] of results.entries()) {
     if (result.status === "rejected") {
       logger.error(`Webhook送信エラー [${index + 1}/${webhookUrls.length}]:`, result.reason);
     }
-  });
+  }
 }
