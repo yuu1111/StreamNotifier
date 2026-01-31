@@ -55,6 +55,7 @@ const NotificationSettingsSchema = z.object({
  * @description Webhook設定スキーマ (URLと通知設定)
  */
 const WebhookConfigSchema = z.object({
+  name: z.string().optional(),
   url: WebhookUrlSchema,
   notifications: NotificationSettingsSchema,
 });

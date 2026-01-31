@@ -11,6 +11,7 @@
       "username": "streamer_name",
       "webhooks": [
         {
+          "name": "メイン通知",
           "url": "https://discord.com/api/webhooks/your_webhook_id/your_webhook_token",
           "notifications": {
             "online": true,

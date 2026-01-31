@@ -31,9 +31,10 @@ async function startMonitor(): Promise<void> {
 
       for (const webhook of streamerConfig.webhooks) {
         if (isNotificationEnabled(change.type, webhook.notifications)) {
+          const webhookLabel = webhook.name ?? "Webhook";
           logger.info(
-            `[${change.currentState.displayName}] ${change.type}` +
-              (change.newValue ? `: ${change.newValue}` : "")
+            `[${change.currentState.displayName}] ${change.type} → ${webhookLabel}` +
+              (change.newValue ? ` (${change.newValue})` : "")
           );
           await sendWebhook(webhook.url, embed, streamerInfo);
         }

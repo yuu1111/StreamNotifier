@@ -144,6 +144,7 @@ async function addStreamer(username: string): Promise<void> {
     process.exit(1);
   }
 
+  const webhookName = await promptInput("Webhook名 (任意): ");
   const webhookUrl = await promptInput("Webhook URL: ");
   if (!validateWebhookUrl(webhookUrl)) {
     console.error("エラー: 無効なWebhook URLです");
@@ -154,6 +155,7 @@ async function addStreamer(username: string): Promise<void> {
     username,
     webhooks: [
       {
+        name: webhookName || undefined,
         url: webhookUrl,
         notifications: {
           [ChangeTypes.Online]: true,
@@ -218,6 +220,7 @@ async function addWebhook(username: string): Promise<void> {
     process.exit(1);
   }
 
+  const webhookName = await promptInput("Webhook名 (任意): ");
   const webhookUrl = await promptInput("Webhook URL: ");
   if (!validateWebhookUrl(webhookUrl)) {
     console.error("エラー: 無効なWebhook URLです");
@@ -230,6 +233,7 @@ async function addWebhook(username: string): Promise<void> {
   }
 
   const newWebhook: WebhookConfig = {
+    name: webhookName || undefined,
     url: webhookUrl,
     notifications: {
       [ChangeTypes.Online]: true,
@@ -263,8 +267,9 @@ async function removeWebhook(username: string): Promise<void> {
 
   console.log("登録済みWebhook:");
   streamer.webhooks.forEach((webhook, i) => {
+    const label = webhook.name ?? `${webhook.url.slice(0, 50)}...`;
     const enabledTypes = getEnabledNotificationTypes(webhook.notifications);
-    console.log(`  ${i + 1}. ${webhook.url.slice(0, 50)}... (${enabledTypes})`);
+    console.log(`  ${i + 1}. ${label} (${enabledTypes})`);
   });
 
   const input = await promptInput("削除する番号: ");
@@ -300,8 +305,9 @@ async function configureWebhook(username: string): Promise<void> {
 
   console.log("登録済みWebhook:");
   streamer.webhooks.forEach((webhook, i) => {
+    const label = webhook.name ?? `${webhook.url.slice(0, 50)}...`;
     const enabledTypes = getEnabledNotificationTypes(webhook.notifications);
-    console.log(`  ${i + 1}. ${webhook.url.slice(0, 50)}... (${enabledTypes})`);
+    console.log(`  ${i + 1}. ${label} (${enabledTypes})`);
   });
 
   const input = await promptInput("\n設定する番号: ");
