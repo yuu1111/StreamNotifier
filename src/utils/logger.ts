@@ -1,4 +1,4 @@
-import { LogLevels, type LogLevel } from "../config/schema";
+import { type LogLevel, LogLevels } from "../config/schema";
 
 /**
  * @description ログレベルの優先度マッピング
