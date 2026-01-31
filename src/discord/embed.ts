@@ -1,4 +1,4 @@
-import { ChangeTypes, ThumbnailSize, type ChangeType } from "../config/schema";
+import { type ChangeType, ChangeTypes, ThumbnailSize } from "../config/schema";
 import type { DetectedChange } from "../monitor/detector";
 
 /**

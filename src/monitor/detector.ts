@@ -1,4 +1,4 @@
-import { ChangeTypes, type ChangeType } from "../config/schema";
+import { type ChangeType, ChangeTypes } from "../config/schema";
 import type { StreamerState } from "./state";
 
 /**

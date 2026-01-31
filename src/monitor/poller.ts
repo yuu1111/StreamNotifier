@@ -1,9 +1,9 @@
-import { ChangeTypes, ThumbnailSize, type Config, type StreamerConfig } from "../config/schema";
+import { ChangeTypes, type Config, type StreamerConfig, ThumbnailSize } from "../config/schema";
 import type { TwitchAPI } from "../twitch/api";
 import type { TwitchChannel, TwitchStream, TwitchUser } from "../twitch/types";
 import { logger } from "../utils/logger";
 import { type DetectedChange, detectChanges } from "./detector";
-import { type StreamerState, StateManager } from "./state";
+import { StateManager, type StreamerState } from "./state";
 
 /**
  * @description 配信者の状態を定期的にポーリングし変更を検出するクラス
@@ -139,22 +139,6 @@ export class Poller {
   }
 
   /**
-   * @description 変更が通知設定で有効かどうかを判定
-   * @param change - 検出された変更
-   * @param streamerConfig - 配信者の通知設定
-   * @returns 通知が有効な場合true
-   */
-  private isNotificationEnabled(change: DetectedChange, streamerConfig: StreamerConfig): boolean {
-    const { notifications } = streamerConfig;
-
-    if (change.type === ChangeTypes.TitleAndGameChange) {
-      return notifications[ChangeTypes.TitleChange] || notifications[ChangeTypes.GameChange];
-    }
-
-    return notifications[change.type];
-  }
-
-  /**
    * @description オフライン配信者のユーザーIDを収集
    * @param streams - 配信中の配信者マップ
    * @returns オフライン配信者のユーザーID配列
@@ -198,9 +182,7 @@ export class Poller {
    * @param state - 配信者の状態
    */
   private logInitialState(state: StreamerState): void {
-    const status = state.isLive
-      ? `配信中 - ${state.gameName || "ゲーム未設定"}`
-      : "オフライン";
+    const status = state.isLive ? `配信中 - ${state.gameName || "ゲーム未設定"}` : "オフライン";
     logger.info(`[${state.displayName}] 初期状態: ${status}`);
   }
 
@@ -244,12 +226,8 @@ export class Poller {
     const combinedChanges = this.combineChanges(detectedChanges);
     await this.attachVodInfo(combinedChanges, user.id);
 
-    const enabledChanges = combinedChanges.filter((change) =>
-      this.isNotificationEnabled(change, streamerConfig)
-    );
-
-    if (enabledChanges.length > 0) {
-      await this.onChanges(enabledChanges, streamerConfig);
+    if (combinedChanges.length > 0) {
+      await this.onChanges(combinedChanges, streamerConfig);
     }
 
     this.stateManager.updateState(username, newState);
