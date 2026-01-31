@@ -1,6 +1,13 @@
 import * as path from "node:path";
 import * as readline from "node:readline";
-import { ChangeTypes, WEBHOOK_URL_PREFIX, type Config, type StreamerConfig } from "./config/schema";
+import {
+  ChangeTypes,
+  type Config,
+  type NotificationSettings,
+  type StreamerConfig,
+  WEBHOOK_URL_PREFIX,
+  type WebhookConfig,
+} from "./config/schema";
 
 /**
  * @description 実行ファイル名を取得
@@ -60,13 +67,14 @@ function printUsage(): void {
   const exe = getExeName();
   console.log(`
 使い方:
-  ${exe}                           監視を開始
-  ${exe} add <username>            配信者を追加
-  ${exe} remove <username>         配信者を削除
-  ${exe} list                      配信者一覧を表示
-  ${exe} webhook add <username>    Webhookを追加
-  ${exe} webhook remove <username> Webhookを削除
-  ${exe} help                      このヘルプを表示
+  ${exe}                            監視を開始
+  ${exe} add <username>             配信者を追加
+  ${exe} remove <username>          配信者を削除
+  ${exe} list                       配信者一覧を表示
+  ${exe} webhook add <username>     Webhookを追加
+  ${exe} webhook remove <username>  Webhookを削除
+  ${exe} webhook config <username>  Webhook通知設定を変更
+  ${exe} help                       このヘルプを表示
 `);
 }
 
@@ -90,6 +98,18 @@ function promptInput(message: string): Promise<string> {
  */
 function validateWebhookUrl(url: string): boolean {
   return url.startsWith(WEBHOOK_URL_PREFIX);
+}
+
+/**
+ * @description 有効な通知タイプを文字列で返す
+ */
+function getEnabledNotificationTypes(notifications: NotificationSettings): string {
+  const types: string[] = [];
+  if (notifications[ChangeTypes.Online]) types.push("online");
+  if (notifications[ChangeTypes.Offline]) types.push("offline");
+  if (notifications[ChangeTypes.TitleChange]) types.push("title");
+  if (notifications[ChangeTypes.GameChange]) types.push("game");
+  return types.length === 4 ? "全通知" : types.join(", ");
 }
 
 /**
@@ -132,13 +152,17 @@ async function addStreamer(username: string): Promise<void> {
 
   const newStreamer: StreamerConfig = {
     username,
-    notifications: {
-      [ChangeTypes.Online]: true,
-      [ChangeTypes.Offline]: true,
-      [ChangeTypes.TitleChange]: true,
-      [ChangeTypes.GameChange]: true,
-    },
-    webhooks: [webhookUrl],
+    webhooks: [
+      {
+        url: webhookUrl,
+        notifications: {
+          [ChangeTypes.Online]: true,
+          [ChangeTypes.Offline]: true,
+          [ChangeTypes.TitleChange]: true,
+          [ChangeTypes.GameChange]: true,
+        },
+      },
+    ],
   };
 
   config.streamers.push(newStreamer);
@@ -200,12 +224,21 @@ async function addWebhook(username: string): Promise<void> {
     process.exit(1);
   }
 
-  if (streamer.webhooks.includes(webhookUrl)) {
+  if (streamer.webhooks.some((w) => w.url === webhookUrl)) {
     console.error("エラー: このWebhookは既に登録されています");
     process.exit(1);
   }
 
-  streamer.webhooks.push(webhookUrl);
+  const newWebhook: WebhookConfig = {
+    url: webhookUrl,
+    notifications: {
+      [ChangeTypes.Online]: true,
+      [ChangeTypes.Offline]: true,
+      [ChangeTypes.TitleChange]: true,
+      [ChangeTypes.GameChange]: true,
+    },
+  };
+  streamer.webhooks.push(newWebhook);
   await saveConfig(config);
   console.log(`${username} にWebhookを追加しました (合計: ${streamer.webhooks.length}件)`);
 }
@@ -229,8 +262,9 @@ async function removeWebhook(username: string): Promise<void> {
   }
 
   console.log("登録済みWebhook:");
-  streamer.webhooks.forEach((url, i) => {
-    console.log(`  ${i + 1}. ${url.slice(0, 60)}...`);
+  streamer.webhooks.forEach((webhook, i) => {
+    const enabledTypes = getEnabledNotificationTypes(webhook.notifications);
+    console.log(`  ${i + 1}. ${webhook.url.slice(0, 50)}... (${enabledTypes})`);
   });
 
   const input = await promptInput("削除する番号: ");
@@ -244,6 +278,72 @@ async function removeWebhook(username: string): Promise<void> {
   streamer.webhooks.splice(index, 1);
   await saveConfig(config);
   console.log(`Webhookを削除しました (残り: ${streamer.webhooks.length}件)`);
+}
+
+/**
+ * @description 配信者のWebhook通知設定を変更
+ * @param username - Twitchユーザー名
+ */
+async function configureWebhook(username: string): Promise<void> {
+  const config = await loadConfig();
+
+  const streamer = findStreamer(config.streamers, username);
+  if (!streamer) {
+    console.error(`エラー: ${username} は登録されていません`);
+    process.exit(1);
+  }
+
+  if (streamer.webhooks.length === 0) {
+    console.error("エラー: Webhookが登録されていません");
+    process.exit(1);
+  }
+
+  console.log("登録済みWebhook:");
+  streamer.webhooks.forEach((webhook, i) => {
+    const enabledTypes = getEnabledNotificationTypes(webhook.notifications);
+    console.log(`  ${i + 1}. ${webhook.url.slice(0, 50)}... (${enabledTypes})`);
+  });
+
+  const input = await promptInput("\n設定する番号: ");
+  const index = parseInt(input, 10) - 1;
+
+  if (Number.isNaN(index) || index < 0 || index >= streamer.webhooks.length) {
+    console.error("エラー: 無効な番号です");
+    process.exit(1);
+  }
+
+  const webhook = streamer.webhooks[index];
+  if (!webhook) {
+    console.error("エラー: Webhookが見つかりません");
+    process.exit(1);
+  }
+  console.log("\n通知設定 (y/n):");
+
+  const onlineInput = await promptInput(`  online [${webhook.notifications.online ? "y" : "n"}]: `);
+  const offlineInput = await promptInput(
+    `  offline [${webhook.notifications.offline ? "y" : "n"}]: `
+  );
+  const titleInput = await promptInput(
+    `  titleChange [${webhook.notifications.titleChange ? "y" : "n"}]: `
+  );
+  const gameInput = await promptInput(
+    `  gameChange [${webhook.notifications.gameChange ? "y" : "n"}]: `
+  );
+
+  const parseYesNo = (input: string, current: boolean): boolean => {
+    if (input === "") return current;
+    return input.toLowerCase() === "y";
+  };
+
+  webhook.notifications = {
+    [ChangeTypes.Online]: parseYesNo(onlineInput, webhook.notifications.online),
+    [ChangeTypes.Offline]: parseYesNo(offlineInput, webhook.notifications.offline),
+    [ChangeTypes.TitleChange]: parseYesNo(titleInput, webhook.notifications.titleChange),
+    [ChangeTypes.GameChange]: parseYesNo(gameInput, webhook.notifications.gameChange),
+  };
+
+  await saveConfig(config);
+  console.log(`\nWebhook ${index + 1} の設定を更新しました`);
 }
 
 /**
@@ -280,6 +380,11 @@ const MENU_ITEMS: MenuItem[] = [
   { key: "3", label: "配信者一覧を表示", action: () => listStreamers() },
   { key: "4", label: "Webhookを追加", action: async () => addWebhook(await promptUsername()) },
   { key: "5", label: "Webhookを削除", action: async () => removeWebhook(await promptUsername()) },
+  {
+    key: "6",
+    label: "Webhook通知設定",
+    action: async () => configureWebhook(await promptUsername()),
+  },
 ];
 
 /**
@@ -353,8 +458,10 @@ export async function runCli(args: string[]): Promise<void> {
           await addWebhook(requireUsername(args[2]));
         } else if (args[1] === "remove") {
           await removeWebhook(requireUsername(args[2]));
+        } else if (args[1] === "config") {
+          await configureWebhook(requireUsername(args[2]));
         } else {
-          console.error("エラー: webhook add または webhook remove を指定してください");
+          console.error("エラー: webhook add/remove/config を指定してください");
           process.exit(1);
         }
         break;

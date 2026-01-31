@@ -1,7 +1,8 @@
 import { runCli } from "./cli";
 import { loadConfig } from "./config/loader";
+import { isNotificationEnabled } from "./config/schema";
 import { buildEmbed } from "./discord/embed";
-import { sendToMultipleWebhooks } from "./discord/webhook";
+import { sendWebhook } from "./discord/webhook";
 import { Poller } from "./monitor/poller";
 import { TwitchAPI } from "./twitch/api";
 import { TwitchAuth } from "./twitch/auth";
@@ -22,16 +23,21 @@ async function startMonitor(): Promise<void> {
 
   const poller = new Poller(api, config, async (changes, streamerConfig) => {
     for (const change of changes) {
-      logger.info(
-        `[${change.currentState.displayName}] ${change.type}` +
-          (change.newValue ? `: ${change.newValue}` : "")
-      );
-
       const embed = buildEmbed(change);
-      await sendToMultipleWebhooks(streamerConfig.webhooks, embed, {
+      const streamerInfo = {
         displayName: change.currentState.displayName,
         profileImageUrl: change.currentState.profileImageUrl,
-      });
+      };
+
+      for (const webhook of streamerConfig.webhooks) {
+        if (isNotificationEnabled(change.type, webhook.notifications)) {
+          logger.info(
+            `[${change.currentState.displayName}] ${change.type}` +
+              (change.newValue ? `: ${change.newValue}` : "")
+          );
+          await sendWebhook(webhook.url, embed, streamerInfo);
+        }
+      }
     }
   });
 

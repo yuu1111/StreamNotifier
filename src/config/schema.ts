@@ -52,12 +52,19 @@ const NotificationSettingsSchema = z.object({
 });
 
 /**
+ * @description Webhook設定スキーマ (URLと通知設定)
+ */
+const WebhookConfigSchema = z.object({
+  url: WebhookUrlSchema,
+  notifications: NotificationSettingsSchema,
+});
+
+/**
  * @description 配信者ごとの設定スキーマ
  */
 const StreamerConfigSchema = z.object({
   username: z.string().min(1, "usernameは必須です"),
-  notifications: NotificationSettingsSchema,
-  webhooks: z.array(WebhookUrlSchema).min(1, "webhooksに1つ以上のURLを設定してください"),
+  webhooks: z.array(WebhookConfigSchema).min(1, "webhooksに1つ以上の設定が必要です"),
 });
 
 /**
@@ -88,6 +95,11 @@ export type Config = z.infer<typeof ConfigSchema>;
 export type StreamerConfig = z.infer<typeof StreamerConfigSchema>;
 
 /**
+ * @description Webhook設定 (URLと通知設定)
+ */
+export type WebhookConfig = z.infer<typeof WebhookConfigSchema>;
+
+/**
  * @description 通知種別ごとの有効/無効設定
  */
 export type NotificationSettings = z.infer<typeof NotificationSettingsSchema>;
@@ -101,3 +113,16 @@ export type LogLevel = (typeof LogLevels)[keyof typeof LogLevels];
  * @description 変更イベントの種別
  */
 export type ChangeType = (typeof ChangeTypes)[keyof typeof ChangeTypes];
+
+/**
+ * @description 変更が通知設定で有効かどうかを判定
+ */
+export function isNotificationEnabled(
+  changeType: ChangeType,
+  notifications: NotificationSettings
+): boolean {
+  if (changeType === ChangeTypes.TitleAndGameChange) {
+    return notifications[ChangeTypes.TitleChange] || notifications[ChangeTypes.GameChange];
+  }
+  return notifications[changeType];
+}

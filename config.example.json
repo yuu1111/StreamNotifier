@@ -9,14 +9,16 @@
   "streamers": [
     {
       "username": "streamer_name",
-      "notifications": {
-        "online": true,
-        "offline": true,
-        "titleChange": true,
-        "gameChange": true
-      },
       "webhooks": [
-        "https://discord.com/api/webhooks/your_webhook_id/your_webhook_token"
+        {
+          "url": "https://discord.com/api/webhooks/your_webhook_id/your_webhook_token",
+          "notifications": {
+            "online": true,
+            "offline": true,
+            "titleChange": true,
+            "gameChange": true
+          }
+        }
       ]
     }
   ],
