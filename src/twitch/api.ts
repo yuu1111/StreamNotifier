@@ -43,6 +43,7 @@ export class TwitchAPI {
         Authorization: `Bearer ${token}`,
         "Client-Id": this.clientId,
       },
+      signal: AbortSignal.timeout(15_000),
     });
 
     if (!response.ok) {

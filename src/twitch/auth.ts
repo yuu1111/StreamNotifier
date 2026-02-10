@@ -48,6 +48,7 @@ export class TwitchAuth {
         client_secret: this.clientSecret,
         grant_type: "client_credentials",
       }),
+      signal: AbortSignal.timeout(15_000),
     });
 
     if (!response.ok) {

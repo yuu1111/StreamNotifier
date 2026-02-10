@@ -45,12 +45,16 @@ export async function sendWebhook(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
+    signal: AbortSignal.timeout(30_000),
   });
 
   if (!response.ok) {
     const error = await response.text();
     throw new Error(`Webhook送信失敗: ${response.status} ${error}`);
   }
+
+  // レスポンスボディを消費してリソースを解放
+  await response.text();
 
   logger.debug(`Webhook送信成功: ${webhookUrl.slice(0, 50)}...`);
 }

@@ -10,9 +10,9 @@ import { StateManager, type StreamerState } from "./state";
  */
 export class Poller {
   /**
-   * @description ポーリングインターバルのタイマーID
+   * @description ポーリングのタイマーID
    */
-  private intervalId: ReturnType<typeof setInterval> | null = null;
+  private timeoutId: ReturnType<typeof setTimeout> | null = null;
 
   /**
    * @description 配信者の状態を管理するインスタンス
@@ -44,7 +44,7 @@ export class Poller {
     await this.poll();
 
     const intervalMs = this.config.polling.intervalSeconds * 1000;
-    this.intervalId = setInterval(() => this.poll(), intervalMs);
+    this.scheduleNextPoll(intervalMs);
 
     const { intervalSeconds } = this.config.polling;
     const streamerCount = this.config.streamers.length;
@@ -55,11 +55,24 @@ export class Poller {
    * @description ポーリングを停止
    */
   stop(): void {
-    if (!this.intervalId) return;
+    if (!this.timeoutId) return;
 
-    clearInterval(this.intervalId);
-    this.intervalId = null;
+    clearTimeout(this.timeoutId);
+    this.timeoutId = null;
     logger.info("ポーリング停止");
+  }
+
+  /**
+   * @description poll完了後に次のポーリングをスケジュール
+   * @param intervalMs - ポーリング間隔(ミリ秒)
+   */
+  private scheduleNextPoll(intervalMs: number): void {
+    this.timeoutId = setTimeout(async () => {
+      await this.poll();
+      if (this.timeoutId !== null) {
+        this.scheduleNextPoll(intervalMs);
+      }
+    }, intervalMs);
   }
 
   /**
