@@ -1,9 +1,14 @@
 import { ChangeTypes, type Config, type StreamerConfig, ThumbnailSize } from "../config/schema";
 import type { TwitchAPI } from "../twitch/api";
 import type { TwitchChannel, TwitchStream, TwitchUser } from "../twitch/types";
-import { logger } from "../utils/logger";
+import { createLogger } from "../utils/logger";
 import { type DetectedChange, detectChanges } from "./detector";
 import { StateManager, type StreamerState } from "./state";
+
+/**
+ * @description ポーリングモジュールのロガー
+ */
+const logger = createLogger("monitor:poller");
 
 /**
  * @description 配信者の状態を定期的にポーリングし変更を検出するクラス
@@ -23,6 +28,11 @@ export class Poller {
    * @description ユーザー情報のキャッシュ
    */
   private userCache = new Map<string, TwitchUser>();
+
+  /**
+   * @description ポーリング実行回数(メモリ診断ログの間隔制御用)
+   */
+  private pollCount = 0;
 
   /**
    * @description Pollerインスタンスを作成
@@ -247,6 +257,18 @@ export class Poller {
   }
 
   /**
+   * @description メモリ使用量をログ出力しGCを促す(リーク診断用)
+   */
+  private logMemoryAndGc(): void {
+    const mem = process.memoryUsage();
+    const toMB = (bytes: number) => (bytes / 1024 / 1024).toFixed(1);
+    logger.info(
+      `[メモリ] RSS: ${toMB(mem.rss)}MB, HeapUsed: ${toMB(mem.heapUsed)}MB, HeapTotal: ${toMB(mem.heapTotal)}MB`
+    );
+    Bun.gc(false);
+  }
+
+  /**
    * @description 全配信者の状態をポーリングして変更を検出
    */
   private async poll(): Promise<void> {
@@ -263,7 +285,12 @@ export class Poller {
         await this.processStreamer(streamerConfig, streams, channels);
       }
     } catch (error) {
-      logger.error("ポーリングエラー:", error);
+      logger.error("ポーリングエラー", { error });
+    }
+
+    this.pollCount++;
+    if (this.pollCount % 100 === 0) {
+      this.logMemoryAndGc();
     }
   }
 }

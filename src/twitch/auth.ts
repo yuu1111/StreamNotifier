@@ -1,5 +1,10 @@
-import { logger } from "../utils/logger";
+import { createLogger } from "../utils/logger";
 import type { TwitchTokenResponse } from "./types";
+
+/**
+ * @description Twitch認証モジュールのロガー
+ */
+const logger = createLogger("twitch:auth");
 
 /**
  * @description Twitch Client Credentials認証を管理するクラス

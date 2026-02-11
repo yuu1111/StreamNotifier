@@ -1,5 +1,10 @@
-import { logger } from "../utils/logger";
+import { createLogger } from "../utils/logger";
 import type { DiscordEmbed } from "./embed";
+
+/**
+ * @description Discord Webhookモジュールのロガー
+ */
+const logger = createLogger("discord:webhook");
 
 /**
  * @description Discord Webhookのペイロード
@@ -76,7 +81,9 @@ export async function sendToMultipleWebhooks(
 
   for (const [index, result] of results.entries()) {
     if (result.status === "rejected") {
-      logger.error(`Webhook送信エラー [${index + 1}/${webhookUrls.length}]:`, result.reason);
+      logger.error(`Webhook送信エラー [${index + 1}/${webhookUrls.length}]`, {
+        error: result.reason,
+      });
     }
   }
 }

@@ -1,4 +1,4 @@
-import { logger } from "../utils/logger";
+import { createLogger } from "../utils/logger";
 import type { TwitchAuth } from "./auth";
 import type {
   TwitchApiResponse,
@@ -7,6 +7,11 @@ import type {
   TwitchUser,
   TwitchVideo,
 } from "./types";
+
+/**
+ * @description Twitch APIモジュールのロガー
+ */
+const logger = createLogger("twitch:api");
 
 /**
  * @description Twitch Helix APIクライアント

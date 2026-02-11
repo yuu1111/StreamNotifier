@@ -6,7 +6,12 @@ import { sendWebhook } from "./discord/webhook";
 import { Poller } from "./monitor/poller";
 import { TwitchAPI } from "./twitch/api";
 import { TwitchAuth } from "./twitch/auth";
-import { logger } from "./utils/logger";
+import { createLogger, setLogLevel } from "./utils/logger";
+
+/**
+ * @description メインモジュールのロガー
+ */
+const logger = createLogger("main");
 
 /**
  * @description 監視を開始する
@@ -16,7 +21,7 @@ async function startMonitor(): Promise<void> {
   logger.info("Stream Notifier 起動中...");
 
   const config = await loadConfig();
-  logger.setLevel(config.log.level);
+  setLogLevel(config.log.level);
 
   const auth = new TwitchAuth(config.twitch.clientId, config.twitch.clientSecret);
   const api = new TwitchAPI(auth, config.twitch.clientId);
@@ -74,6 +79,6 @@ async function main(): Promise<void> {
 }
 
 main().catch((error) => {
-  logger.error("致命的なエラー:", error);
+  logger.error("致命的なエラー", { error });
   process.exit(1);
 });
