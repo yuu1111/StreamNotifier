@@ -74,7 +74,8 @@ async function runSupervisor(): Promise<void> {
   logger.info("スーパーバイザー起動");
 
   const spawnWorker = (): void => {
-    const worker = Bun.spawn([process.execPath, ...process.argv.slice(1)], {
+    const execPath = process.argv[0] ?? process.execPath;
+    const worker = Bun.spawn([execPath, ...process.argv.slice(1)], {
       env: { ...process.env, [WORKER_ENV_KEY]: "1" },
       stdout: "inherit",
       stderr: "inherit",
