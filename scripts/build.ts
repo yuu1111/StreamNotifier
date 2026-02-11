@@ -14,9 +14,9 @@ const TARGETS = {
  * @description 実行ファイル名
  */
 const OUTPUT_NAMES = {
-  win: "stream-notifier.exe",
-  linux: "stream-notifier",
-  mac: "stream-notifier",
+  win: "stream-notifier-windows-x64.exe",
+  linux: "stream-notifier-linux-x64",
+  mac: "stream-notifier-darwin-x64",
 } as const;
 
 type Platform = keyof typeof TARGETS;

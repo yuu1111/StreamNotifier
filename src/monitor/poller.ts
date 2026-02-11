@@ -1,11 +1,6 @@
 import { ChangeTypes, type Config, type StreamerConfig, ThumbnailSize } from "../config/schema";
 
 /**
- * @description RSS上限バイト数(512MB) - mimallockのアドレス空間保持により修正不可なRSS肥大時に自動再起動
- */
-const RSS_LIMIT_BYTES = 512 * 1024 * 1024;
-
-/**
  * @description GC実行間隔(ポーリング回数)
  */
 const GC_INTERVAL = 10;
@@ -49,11 +44,6 @@ export class Poller {
    * @description ポーリング実行回数(メモリ診断ログの間隔制御用)
    */
   private pollCount = 0;
-
-  /**
-   * @description RSS上限超過により再起動待機中フラグ
-   */
-  private restartPending = false;
 
   /**
    * @description Pollerインスタンスを作成
@@ -278,7 +268,7 @@ export class Poller {
   }
 
   /**
-   * @description メモリ使用量をログ出力し、RSS上限超過時に再起動待機を開始
+   * @description メモリ使用量をログ出力
    */
   private logMemory(): void {
     const mem = process.memoryUsage();
@@ -286,35 +276,6 @@ export class Poller {
     logger.info(
       `[メモリ] RSS: ${toMB(mem.rss)}MB, HeapUsed: ${toMB(mem.heapUsed)}MB, HeapTotal: ${toMB(mem.heapTotal)}MB`
     );
-
-    if (!this.restartPending && mem.rss > RSS_LIMIT_BYTES) {
-      logger.warn(
-        `RSS ${toMB(mem.rss)}MBが上限${toMB(RSS_LIMIT_BYTES)}MBを超過 - 全員オフライン時に再起動します`
-      );
-      this.restartPending = true;
-    }
-  }
-
-  /**
-   * @description 配信中の配信者が1人もいないかチェック
-   */
-  private isAllOffline(): boolean {
-    for (const streamer of this.config.streamers) {
-      const state = this.stateManager.getState(streamer.username.toLowerCase());
-      if (state?.isLive) return false;
-    }
-    return true;
-  }
-
-  /**
-   * @description 再起動待機中かつ全員オフラインならプロセスを終了
-   */
-  private checkRestart(): void {
-    if (!this.restartPending || !this.isAllOffline()) return;
-
-    logger.info("全配信者オフライン確認 - プロセスを再起動します");
-    this.stop();
-    process.exit(0);
   }
 
   /**
@@ -344,6 +305,5 @@ export class Poller {
     if (this.pollCount % MEMORY_LOG_INTERVAL === 0) {
       this.logMemory();
     }
-    this.checkRestart();
   }
 }

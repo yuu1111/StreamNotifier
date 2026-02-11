@@ -14,11 +14,6 @@ import { createLogger, setLogLevel } from "./utils/logger";
 const logger = createLogger("main");
 
 /**
- * @description ワーカープロセス判別用の環境変数名
- */
-const WORKER_ENV_KEY = "STREAM_NOTIFIER_WORKER";
-
-/**
  * @description 監視を開始する
  */
 async function startMonitor(): Promise<void> {
@@ -68,41 +63,6 @@ async function startMonitor(): Promise<void> {
 }
 
 /**
- * @description ワーカーをspawnし、exit(0)時に自動再起動するスーパーバイザー
- */
-async function runSupervisor(): Promise<void> {
-  logger.info("スーパーバイザー起動");
-
-  const spawnWorker = (): void => {
-    const execPath = process.argv[0] ?? process.execPath;
-    const worker = Bun.spawn([execPath, ...process.argv.slice(1)], {
-      env: { ...process.env, [WORKER_ENV_KEY]: "1" },
-      stdout: "inherit",
-      stderr: "inherit",
-      stdin: "inherit",
-      onExit: (_proc, exitCode) => {
-        if (exitCode === 0) {
-          logger.info("ワーカー終了(exit 0) - 再起動します");
-          spawnWorker();
-          return;
-        }
-        logger.error(`ワーカー異常終了(exit ${exitCode})`);
-        process.exit(exitCode ?? 1);
-      },
-    });
-
-    // スーパーバイザーへのシグナルをワーカーに転送
-    const forwardSignal = () => {
-      worker.kill();
-    };
-    process.on("SIGINT", forwardSignal);
-    process.on("SIGTERM", forwardSignal);
-  };
-
-  spawnWorker();
-}
-
-/**
  * @description 統合エントリーポイント
  */
 async function main(): Promise<void> {
@@ -110,11 +70,7 @@ async function main(): Promise<void> {
 
   // 引数なし or "run" → 監視開始
   if (args.length === 0 || args[0] === "run") {
-    if (process.env[WORKER_ENV_KEY]) {
-      await startMonitor();
-    } else {
-      await runSupervisor();
-    }
+    await startMonitor();
     return;
   }
 
