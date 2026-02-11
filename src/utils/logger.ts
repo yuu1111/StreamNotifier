@@ -1,5 +1,4 @@
-import { existsSync, mkdirSync } from "node:fs";
-import { appendFile } from "node:fs/promises";
+import { appendFileSync, existsSync, mkdirSync } from "node:fs";
 import { type LogLevel, LogLevels } from "../config/schema";
 
 /**
@@ -188,14 +187,14 @@ function ensureLogDirectory(): void {
 }
 
 /**
- * @description ログエントリをファイルに非同期追記
+ * @description ログエントリをファイルに同期追記
  * @param filePath - 書き込み先ファイルパス
  * @param logLine - 書き込むログ行
  */
-async function appendLogToFile(filePath: string, logLine: string): Promise<void> {
+function appendLogToFile(filePath: string, logLine: string): void {
   try {
     ensureLogDirectory();
-    await appendFile(filePath, logLine);
+    appendFileSync(filePath, logLine);
   } catch (err) {
     console.error(`Failed to write log to ${filePath}:`, err);
   }
@@ -208,10 +207,10 @@ async function appendLogToFile(filePath: string, logLine: string): Promise<void>
 function writeLogToFile(entry: LogEntry): void {
   const logLine = `${JSON.stringify(entry)}\n`;
 
-  appendLogToFile(getLogFilePath("app"), logLine).catch(() => {});
+  appendLogToFile(getLogFilePath("app"), logLine);
 
   if (entry.level === "error") {
-    appendLogToFile(getLogFilePath("error"), logLine).catch(() => {});
+    appendLogToFile(getLogFilePath("error"), logLine);
   }
 }
 
