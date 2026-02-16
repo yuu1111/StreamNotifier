@@ -1,9 +1,10 @@
+import { heapStats } from "bun:jsc";
 import { ChangeTypes, type Config, type StreamerConfig, ThumbnailSize } from "../config/schema";
 
 /**
  * @description GC実行間隔(ポーリング回数)
  */
-const GC_INTERVAL = 10;
+const GC_INTERVAL = 5;
 
 /**
  * @description メモリログ出力間隔(ポーリング回数)
@@ -268,13 +269,14 @@ export class Poller {
   }
 
   /**
-   * @description メモリ使用量をログ出力
+   * @description メモリ使用量をログ出力(bun:jscでOld世代含む正確な情報を取得)
    */
   private logMemory(): void {
     const mem = process.memoryUsage();
+    const stats = heapStats();
     const toMB = (bytes: number) => (bytes / 1024 / 1024).toFixed(1);
     logger.info(
-      `[メモリ] RSS: ${toMB(mem.rss)}MB, HeapUsed: ${toMB(mem.heapUsed)}MB, HeapTotal: ${toMB(mem.heapTotal)}MB`
+      `[メモリ] RSS: ${toMB(mem.rss)}MB, Heap: ${toMB(mem.heapUsed)}/${toMB(mem.heapTotal)}MB, Objects: ${stats.objectCount}, Extra: ${toMB(stats.extraMemorySize)}MB`
     );
   }
 
@@ -298,9 +300,10 @@ export class Poller {
       logger.error("ポーリングエラー", { error });
     }
 
-    this.pollCount++;
+    this.pollCount = (this.pollCount + 1) % 1000;
     if (this.pollCount % GC_INTERVAL === 0) {
-      Bun.gc(false);
+      // Old世代含むフル同期GC + mi_collect + ソースキャッシュ解放
+      Bun.gc(true);
     }
     if (this.pollCount % MEMORY_LOG_INTERVAL === 0) {
       this.logMemory();
