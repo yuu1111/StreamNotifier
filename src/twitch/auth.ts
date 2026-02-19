@@ -47,7 +47,10 @@ export class TwitchAuth {
 
     const response = await fetch("https://id.twitch.tv/oauth2/token", {
       method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Accept-Encoding": "identity",
+      },
       body: new URLSearchParams({
         client_id: this.clientId,
         client_secret: this.clientSecret,

@@ -47,6 +47,8 @@ export class TwitchAPI {
       headers: {
         Authorization: `Bearer ${token}`,
         "Client-Id": this.clientId,
+        // Bunのzlib(inflate)にメモリリークがあるためgzip解凍を回避
+        "Accept-Encoding": "identity",
       },
       signal: AbortSignal.timeout(15_000),
     });
