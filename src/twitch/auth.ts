@@ -49,7 +49,6 @@ export class TwitchAuth {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
-        "Accept-Encoding": "identity",
       },
       body: new URLSearchParams({
         client_id: this.clientId,

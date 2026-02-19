@@ -1,16 +1,4 @@
-import { heapStats } from "bun:jsc";
 import { ChangeTypes, type Config, type StreamerConfig, ThumbnailSize } from "../config/schema";
-
-/**
- * @description GC実行間隔(ポーリング回数)
- */
-const GC_INTERVAL = 5;
-
-/**
- * @description メモリログ出力間隔(ポーリング回数)
- */
-const MEMORY_LOG_INTERVAL = 100;
-
 import type { TwitchAPI } from "../twitch/api";
 import type { TwitchChannel, TwitchStream, TwitchUser } from "../twitch/types";
 import { createLogger } from "../utils/logger";
@@ -40,11 +28,6 @@ export class Poller {
    * @description ユーザー情報のキャッシュ
    */
   private userCache = new Map<string, TwitchUser>();
-
-  /**
-   * @description ポーリング実行回数(メモリ診断ログの間隔制御用)
-   */
-  private pollCount = 0;
 
   /**
    * @description Pollerインスタンスを作成
@@ -269,18 +252,6 @@ export class Poller {
   }
 
   /**
-   * @description メモリ使用量をログ出力(bun:jscでOld世代含む正確な情報を取得)
-   */
-  private logMemory(): void {
-    const mem = process.memoryUsage();
-    const stats = heapStats();
-    const toMB = (bytes: number) => (bytes / 1024 / 1024).toFixed(1);
-    logger.info(
-      `[メモリ] RSS: ${toMB(mem.rss)}MB, Heap: ${toMB(mem.heapUsed)}/${toMB(mem.heapTotal)}MB, Objects: ${stats.objectCount}, Extra: ${toMB(stats.extraMemorySize)}MB`
-    );
-  }
-
-  /**
    * @description 全配信者の状態をポーリングして変更を検出
    */
   private async poll(): Promise<void> {
@@ -298,15 +269,6 @@ export class Poller {
       }
     } catch (error) {
       logger.error("ポーリングエラー", { error });
-    }
-
-    this.pollCount = (this.pollCount + 1) % 1000;
-    if (this.pollCount % GC_INTERVAL === 0) {
-      // Old世代含むフル同期GC + mi_collect + ソースキャッシュ解放
-      Bun.gc(true);
-    }
-    if (this.pollCount % MEMORY_LOG_INTERVAL === 0) {
-      this.logMemory();
     }
   }
 }
