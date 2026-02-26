@@ -261,6 +261,9 @@ func setupLogger(level string) {
 }
 
 func startMonitor() error {
+	// コンソールウィンドウのタイトルを設定
+	fmt.Print("\033]0;Stream Notifier\007")
+
 	slog.Info("Stream Notifier 起動中...")
 
 	cfg, err := config.Load("./config.json")
