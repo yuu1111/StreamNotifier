@@ -9,10 +9,13 @@ linters:
     - gocritic
 
 linters-settings:
+  errcheck:
+    exclude-functions:
+      - (io.Closer).Close
+      - (net/http.Response.Body).Close
   gocritic:
     enabled-checks:
       - dupImport
-      - ifElseChain
       - nestingReduce
 
 issues:

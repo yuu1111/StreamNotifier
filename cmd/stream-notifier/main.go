@@ -83,9 +83,9 @@ func (h *consoleHandler) Handle(_ context.Context, r slog.Record) error {
 	}
 
 	if r.Level >= slog.LevelWarn {
-		fmt.Fprintln(os.Stderr, line)
+		_, _ = fmt.Fprintln(os.Stderr, line)
 	} else {
-		fmt.Fprintln(os.Stdout, line)
+		_, _ = fmt.Fprintln(os.Stdout, line)
 	}
 
 	return nil
@@ -172,8 +172,8 @@ func (h *fileHandler) appendToFile(path, line string) {
 		fmt.Fprintf(os.Stderr, "Failed to write log to %s: %v\n", path, err)
 		return
 	}
-	defer f.Close()
-	f.WriteString(line)
+	defer func() { _ = f.Close() }()
+	_, _ = f.WriteString(line)
 }
 
 func (h *fileHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
@@ -285,22 +285,24 @@ func startMonitor() error {
 			}
 
 			for _, webhook := range sc.Webhooks {
-				if config.IsNotificationEnabled(change.Type, webhook.Notifications) {
-					webhookLabel := webhook.Name
-					if webhookLabel == "" {
-						webhookLabel = "Webhook"
-					}
+				if !config.IsNotificationEnabled(change.Type, webhook.Notifications) {
+					continue
+				}
 
-					logMsg := fmt.Sprintf("[%s] %s → %s",
-						change.CurrentState.DisplayName, change.Type, webhookLabel)
-					if change.NewValue != "" {
-						logMsg += fmt.Sprintf(" (%s)", change.NewValue)
-					}
-					slog.Info(logMsg)
+				webhookLabel := webhook.Name
+				if webhookLabel == "" {
+					webhookLabel = "Webhook"
+				}
 
-					if err := discord.SendWebhook(ctx, webhook.URL, embed, streamerInfo); err != nil {
-						slog.Error("Webhook送信失敗", "error", err)
-					}
+				logMsg := fmt.Sprintf("[%s] %s → %s",
+					change.CurrentState.DisplayName, change.Type, webhookLabel)
+				if change.NewValue != "" {
+					logMsg += fmt.Sprintf(" (%s)", change.NewValue)
+				}
+				slog.Info(logMsg)
+
+				if err := discord.SendWebhook(ctx, webhook.URL, embed, streamerInfo); err != nil {
+					slog.Error("Webhook送信失敗", "error", err)
 				}
 			}
 		}
