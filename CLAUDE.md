@@ -6,21 +6,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 # 開発
-bun install            # 依存関係インストール
-bun run start          # 監視開始
-bun run dev            # ホットリロード付き開発
+go run ./cmd/stream-notifier         # 監視開始
+go run ./cmd/stream-notifier help     # CLIヘルプ
 
 # 品質チェック
-bun run lint           # Biomeでlint
-bun run check          # Biomeでlint + format修正
-bun run typecheck      # TypeScript型チェック
+make lint                             # golangci-lint
+go vet ./...                          # go vet
 
 # ビルド
-bun run build          # 現在プラットフォーム用にビルド
-bun run build:win      # Windows用
-bun run build:linux    # Linux用
-bun run build:mac      # macOS用
-bun run build:all      # 全プラットフォーム
+make build                            # 現在プラットフォーム用にビルド
+make build-all                        # 全プラットフォーム
+make clean                            # ビルド成果物を削除
 ```
 
 ## Architecture
@@ -28,33 +24,33 @@ bun run build:all      # 全プラットフォーム
 Twitch配信者の状態変化をポーリングし、Discord Webhookで通知するCLIアプリ。
 
 ```
-src/
-├── main.ts           # エントリーポイント (監視 or CLI)
-├── cli.ts            # 設定管理CLI (add/remove/list/webhook)
+cmd/
+└── stream-notifier/
+    └── main.go           # エントリーポイント (監視 or CLI dispatch)
+internal/
+├── cli/
+│   └── cli.go            # 対話式メニュー + サブコマンド
 ├── config/
-│   ├── schema.ts     # Zodスキーマ定義 (設定・型)
-│   └── loader.ts     # config.json読み込み
-├── twitch/
-│   ├── auth.ts       # OAuth2クライアント認証
-│   ├── api.ts        # Helix API呼び出し
-│   └── types.ts      # APIレスポンス型
-├── monitor/
-│   ├── poller.ts     # 定期ポーリング実行
-│   ├── detector.ts   # 状態変化検出ロジック
-│   └── state.ts      # 配信者状態管理
+│   └── config.go         # Config struct, JSON読み込み, バリデーション
 ├── discord/
-│   ├── webhook.ts    # Webhook送信
-│   └── embed.ts      # Embed構築
-└── utils/
-    └── logger.ts     # ログ出力
+│   ├── embed.go          # Embed構築
+│   └── webhook.go        # Webhook送信
+├── monitor/
+│   ├── detector.go       # 状態変化検出ロジック
+│   ├── poller.go         # 定期ポーリング実行
+│   └── state.go          # 配信者状態管理 (in-memory)
+└── twitch/
+    ├── api.go            # Helix API クライアント
+    ├── auth.go           # OAuth2 Client Credentials
+    └── types.go          # APIレスポンス型
 ```
 
-**データフロー**: `Poller` → `TwitchAPI` → `detectChanges` → `buildEmbed` → `sendToWebhook`
+**データフロー**: `Poller` → `TwitchAPI` → `DetectChanges` → `BuildEmbed` → `SendWebhook`
 
 ## Key Points
 
-- ランタイム: Bun
-- 設定バリデーション: Zod (`config/schema.ts`)
-- パスエイリアス: `@/*` → `src/*`
+- 言語: Go (stdlib only, 外部依存ゼロ)
+- 設定バリデーション: 手書きValidate()メソッド
 - 通知タイプ: online / offline / titleChange / gameChange / titleAndGameChange
 - 設定ファイル: `config.json` (テンプレート: `config.example.json`)
+- ログ: slog (コンソール ANSI色付き + ファイル JSON)
