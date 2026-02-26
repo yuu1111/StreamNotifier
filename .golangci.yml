@@ -1,0 +1,19 @@
+linters:
+  enable:
+    - errcheck
+    - govet
+    - staticcheck
+    - unused
+    - gosimple
+    - ineffassign
+    - gocritic
+
+linters-settings:
+  gocritic:
+    enabled-checks:
+      - dupImport
+      - ifElseChain
+      - nestingReduce
+
+issues:
+  exclude-use-default: false
