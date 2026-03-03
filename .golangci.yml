@@ -1,0 +1,22 @@
+linters:
+  enable:
+    - errcheck
+    - govet
+    - staticcheck
+    - unused
+    - gosimple
+    - ineffassign
+    - gocritic
+
+linters-settings:
+  errcheck:
+    exclude-functions:
+      - (io.Closer).Close
+      - (net/http.Response.Body).Close
+  gocritic:
+    enabled-checks:
+      - dupImport
+      - nestingReduce
+
+issues:
+  exclude-use-default: false

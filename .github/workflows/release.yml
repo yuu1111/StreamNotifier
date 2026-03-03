@@ -11,29 +11,30 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: ubuntu-latest
-            target: bun-linux-x64
+          - goos: linux
+            goarch: amd64
             name: stream-notifier-linux-x64
-          - os: macos-latest
-            target: bun-darwin-x64
+          - goos: darwin
+            goarch: amd64
             name: stream-notifier-darwin-x64
-          - os: windows-latest
-            target: bun-windows-x64
+          - goos: windows
+            goarch: amd64
             name: stream-notifier-windows-x64.exe
 
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
 
-      - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-go@v5
         with:
-          bun-version: latest
-
-      - run: bun install
+          go-version: "1.25"
 
       - name: Build
-        run: bun build --compile --target=${{ matrix.target }} src/main.ts --outfile ${{ matrix.name }}
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: go build -o ${{ matrix.name }} ./cmd/stream-notifier
 
       - name: Upload to Release
         uses: softprops/action-gh-release@v2
