@@ -8,5 +8,5 @@ FROM alpine:3.21
 RUN apk add --no-cache ca-certificates tzdata
 WORKDIR /app
 COPY --from=build /stream-notifier .
-VOLUME ["/app/config.json", "/app/logs"]
+VOLUME ["/app/logs"]
 ENTRYPOINT ["./stream-notifier"]
