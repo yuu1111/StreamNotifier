@@ -2,6 +2,10 @@
 package monitor
 
 import (
+	"encoding/json"
+	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 )
@@ -62,4 +66,124 @@ func (sm *StateManager) HasState(username string) bool {
 
 	_, ok := sm.states[strings.ToLower(username)]
 	return ok
+}
+
+// stateCount は保持している状態数を返す。
+func (sm *StateManager) stateCount() int {
+	sm.mu.RLock()
+	defer sm.mu.RUnlock()
+	return len(sm.states)
+}
+
+// DeleteState は指定ユーザー名の状態を削除する。
+func (sm *StateManager) DeleteState(username string) {
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
+
+	delete(sm.states, strings.ToLower(username))
+}
+
+// persistedState はJSON永続化用の状態。
+type persistedState struct {
+	UserID          string `json:"userId"`
+	Username        string `json:"username"`
+	DisplayName     string `json:"displayName"`
+	ProfileImageURL string `json:"profileImageUrl"`
+	IsLive          bool   `json:"isLive"`
+	Title           string `json:"title"`
+	GameID          string `json:"gameId"`
+	GameName        string `json:"gameName"`
+	StartedAt       string `json:"startedAt,omitempty"`
+	ThumbnailURL    string `json:"thumbnailUrl,omitempty"`
+	ViewerCount     int    `json:"viewerCount,omitempty"`
+}
+
+func toPersistedState(s StreamerState) persistedState {
+	return persistedState{
+		UserID:          s.UserID,
+		Username:        s.Username,
+		DisplayName:     s.DisplayName,
+		ProfileImageURL: s.ProfileImageURL,
+		IsLive:          s.IsLive,
+		Title:           s.Title,
+		GameID:          s.GameID,
+		GameName:        s.GameName,
+		StartedAt:       s.StartedAt,
+		ThumbnailURL:    s.ThumbnailURL,
+		ViewerCount:     s.ViewerCount,
+	}
+}
+
+func fromPersistedState(p persistedState) StreamerState {
+	return StreamerState{
+		UserID:          p.UserID,
+		Username:        p.Username,
+		DisplayName:     p.DisplayName,
+		ProfileImageURL: p.ProfileImageURL,
+		IsLive:          p.IsLive,
+		Title:           p.Title,
+		GameID:          p.GameID,
+		GameName:        p.GameName,
+		StartedAt:       p.StartedAt,
+		ThumbnailURL:    p.ThumbnailURL,
+		ViewerCount:     p.ViewerCount,
+	}
+}
+
+// SaveToFile は全状態をJSONファイルに保存する。
+// 一時ファイルに書き込んでからリネームすることでアトミックに書き込む。
+func (sm *StateManager) SaveToFile(path string) error {
+	sm.mu.RLock()
+	persisted := make(map[string]persistedState, len(sm.states))
+	for k, v := range sm.states {
+		persisted[k] = toPersistedState(v)
+	}
+	sm.mu.RUnlock()
+
+	data, err := json.MarshalIndent(persisted, "", "  ")
+	if err != nil {
+		return fmt.Errorf("状態のJSON変換に失敗: %w", err)
+	}
+
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return fmt.Errorf("状態保存ディレクトリの作成に失敗: %w", err)
+	}
+
+	tmpPath := path + ".tmp"
+	if err := os.WriteFile(tmpPath, data, 0644); err != nil {
+		return fmt.Errorf("状態の一時ファイル書き込みに失敗: %w", err)
+	}
+
+	if err := os.Rename(tmpPath, path); err != nil {
+		return fmt.Errorf("状態ファイルのリネームに失敗: %w", err)
+	}
+
+	return nil
+}
+
+// LoadFromFile はJSONファイルから状態を復元する。
+// ファイルが存在しない場合はエラーなしで空状態のまま返す。
+func (sm *StateManager) LoadFromFile(path string) error {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return fmt.Errorf("状態ファイルの読み込みに失敗: %w", err)
+	}
+
+	var persisted map[string]persistedState
+	if err := json.Unmarshal(data, &persisted); err != nil {
+		return fmt.Errorf("状態ファイルのJSON解析に失敗: %w", err)
+	}
+
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
+
+	for k, v := range persisted {
+		sm.states[k] = fromPersistedState(v)
+	}
+
+	return nil
 }

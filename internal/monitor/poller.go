@@ -3,6 +3,7 @@ package monitor
 import (
 	"context"
 	"log/slog"
+	"os"
 	"strings"
 	"time"
 
@@ -15,18 +16,23 @@ type ChangeHandler func(changes []DetectedChange, streamerConfig config.Streamer
 
 // Poller は配信者の状態を定期的にポーリングし変更を検出する。
 type Poller struct {
-	api          *twitch.API
-	cfg          *config.Config
-	onChanges    ChangeHandler
-	stateManager *StateManager
-	userCache    map[string]twitch.User
+	api            *twitch.API
+	cfg            *config.Config
+	configPath     string
+	statePath      string
+	onChanges      ChangeHandler
+	stateManager   *StateManager
+	userCache      map[string]twitch.User
+	lastConfigMod  time.Time
 }
 
 // NewPoller はPollerインスタンスを作成する。
-func NewPoller(api *twitch.API, cfg *config.Config, onChanges ChangeHandler) *Poller {
+func NewPoller(api *twitch.API, cfg *config.Config, configPath string, statePath string, onChanges ChangeHandler) *Poller {
 	return &Poller{
 		api:          api,
 		cfg:          cfg,
+		configPath:   configPath,
+		statePath:    statePath,
 		onChanges:    onChanges,
 		stateManager: NewStateManager(),
 		userCache:    make(map[string]twitch.User),
@@ -35,6 +41,16 @@ func NewPoller(api *twitch.API, cfg *config.Config, onChanges ChangeHandler) *Po
 
 // Run はポーリングループを開始する。ctxがキャンセルされるまで実行する。
 func (p *Poller) Run(ctx context.Context) error {
+	// 前回の状態を復元
+	if err := p.stateManager.LoadFromFile(p.statePath); err != nil {
+		slog.Warn("状態ファイルの読み込みに失敗(新規起動として続行)", "error", err)
+	} else if p.stateManager.stateCount() > 0 {
+		slog.Info("前回の状態を復元しました", "streamers", p.stateManager.stateCount())
+	}
+
+	// configファイルの初期modtimeを記録
+	p.updateConfigModTime()
+
 	if err := p.initializeUserCache(ctx); err != nil {
 		return err
 	}
@@ -53,8 +69,12 @@ func (p *Poller) Run(ctx context.Context) error {
 		select {
 		case <-ctx.Done():
 			slog.Info("ポーリング停止")
+			p.saveState()
 			return nil
 		case <-ticker.C:
+			if newInterval := p.checkConfigReload(ctx); newInterval > 0 {
+				ticker.Reset(newInterval)
+			}
 			p.poll(ctx)
 		}
 	}
@@ -82,6 +102,94 @@ func (p *Poller) initializeUserCache(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+// updateConfigModTime はconfigファイルの更新時刻を記録する。
+func (p *Poller) updateConfigModTime() {
+	info, err := os.Stat(p.configPath)
+	if err != nil {
+		return
+	}
+	p.lastConfigMod = info.ModTime()
+}
+
+// checkConfigReload はconfigファイルの変更を検出しリロードする。
+// ポーリング間隔が変更された場合は新しいintervalを返す。変更なしは0を返す。
+func (p *Poller) checkConfigReload(ctx context.Context) time.Duration {
+	info, err := os.Stat(p.configPath)
+	if err != nil {
+		return 0
+	}
+
+	if !info.ModTime().After(p.lastConfigMod) {
+		return 0
+	}
+
+	p.lastConfigMod = info.ModTime()
+
+	newCfg, err := config.Load(p.configPath)
+	if err != nil {
+		slog.Error("設定リロード失敗(現在の設定を維持)", "error", err)
+		return 0
+	}
+
+	oldInterval := p.cfg.Polling.IntervalSeconds
+	oldStreamers := make(map[string]bool)
+	for _, s := range p.cfg.Streamers {
+		oldStreamers[strings.ToLower(s.Username)] = true
+	}
+
+	p.cfg = newCfg
+
+	// 削除された配信者のキャッシュと状態をクリア
+	newStreamers := make(map[string]bool)
+	for _, s := range newCfg.Streamers {
+		newStreamers[strings.ToLower(s.Username)] = true
+	}
+	for name := range oldStreamers {
+		if !newStreamers[name] {
+			delete(p.userCache, name)
+			p.stateManager.DeleteState(name)
+			slog.Info("配信者を削除", "username", name)
+		}
+	}
+
+	// 新規追加された配信者のユーザーキャッシュを取得
+	var newUsernames []string
+	for _, s := range newCfg.Streamers {
+		key := strings.ToLower(s.Username)
+		if !oldStreamers[key] {
+			newUsernames = append(newUsernames, s.Username)
+		}
+	}
+	if len(newUsernames) > 0 {
+		users, err := p.api.GetUsers(ctx, newUsernames)
+		if err != nil {
+			slog.Error("新規配信者のユーザー情報取得失敗", "error", err)
+		} else {
+			for k, u := range users {
+				p.userCache[k] = u
+				slog.Info("配信者を追加", "username", u.DisplayName)
+			}
+		}
+	}
+
+	slog.Info("設定をリロードしました", "streamers", len(newCfg.Streamers))
+
+	if newCfg.Polling.IntervalSeconds != oldInterval {
+		newInterval := time.Duration(newCfg.Polling.IntervalSeconds) * time.Second
+		slog.Info("ポーリング間隔を変更", "old", oldInterval, "new", newCfg.Polling.IntervalSeconds)
+		return newInterval
+	}
+
+	return 0
+}
+
+// saveState は現在の状態をファイルに保存する。
+func (p *Poller) saveState() {
+	if err := p.stateManager.SaveToFile(p.statePath); err != nil {
+		slog.Error("状態の保存に失敗", "error", err)
+	}
 }
 
 // combineChanges はタイトル変更とゲーム変更を同時検出した場合に統合する。
@@ -274,4 +382,6 @@ func (p *Poller) poll(ctx context.Context) {
 	for _, sc := range p.cfg.Streamers {
 		p.processStreamer(ctx, sc, streams, channels)
 	}
+
+	p.saveState()
 }

@@ -279,7 +279,10 @@ func startMonitor() error {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	poller := monitor.NewPoller(api, cfg, func(changes []monitor.DetectedChange, sc config.StreamerConfig) {
+	configPath := "./config.json"
+	statePath := "./data/state.json"
+
+	poller := monitor.NewPoller(api, cfg, configPath, statePath, func(changes []monitor.DetectedChange, sc config.StreamerConfig) {
 		for _, change := range changes {
 			embed := discord.BuildEmbed(change)
 			streamerInfo := discord.StreamerInfo{
