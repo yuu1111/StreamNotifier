@@ -4,7 +4,7 @@ import (
 	"github.com/yuu1111/StreamNotifier/internal/config"
 )
 
-// DetectedChange は検出された変更イベントを表す。
+// DetectedChange は検出された変更イベントを表す
 type DetectedChange struct {
 	Type           config.ChangeType
 	Streamer       string
@@ -20,8 +20,8 @@ type DetectedChange struct {
 	CurrentState   StreamerState
 }
 
-// DetectChanges は新旧状態を比較して変更を検出する。
-// oldStateがnilの場合は初回ポーリングとして空スライスを返す。
+// DetectChanges は新旧状態を比較して変更を検出する
+// oldStateがnilの場合は初回ポーリングとして空スライスを返す
 func DetectChanges(oldState *StreamerState, newState StreamerState) []DetectedChange {
 	if oldState == nil {
 		return nil

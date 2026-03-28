@@ -1,4 +1,4 @@
-// Package cli は設定管理CLIを提供する。
+// Package cli は設定管理CLIを提供する
 package cli
 
 import (
@@ -16,7 +16,7 @@ const configPath = "./config.json"
 
 var scanner *bufio.Scanner
 
-// getScanner はstdin用のscannerを遅延初期化して返す。
+// getScanner はstdin用のscannerを遅延初期化して返す
 func getScanner() *bufio.Scanner {
 	if scanner == nil {
 		scanner = bufio.NewScanner(os.Stdin)
@@ -24,7 +24,7 @@ func getScanner() *bufio.Scanner {
 	return scanner
 }
 
-// promptInput はプロンプトを表示しユーザー入力を取得する。
+// promptInput はプロンプトを表示しユーザー入力を取得する
 func promptInput(message string) string {
 	fmt.Print(message)
 	s := getScanner()
@@ -34,12 +34,12 @@ func promptInput(message string) string {
 	return ""
 }
 
-// validateWebhookURL はWebhook URLの形式を検証する。
+// validateWebhookURL はWebhook URLの形式を検証する
 func validateWebhookURL(url string) bool {
 	return strings.HasPrefix(url, config.WebhookURLPrefix)
 }
 
-// getEnabledNotificationTypes は有効な通知タイプを文字列で返す。
+// getEnabledNotificationTypes は有効な通知タイプを文字列で返す
 func getEnabledNotificationTypes(n config.NotificationSettings) string {
 	var types []string
 	if n.Online {
@@ -60,7 +60,7 @@ func getEnabledNotificationTypes(n config.NotificationSettings) string {
 	return strings.Join(types, ", ")
 }
 
-// findStreamer はユーザー名で配信者を検索する。
+// findStreamer はユーザー名で配信者を検索する
 func findStreamer(streamers []config.StreamerConfig, username string) *config.StreamerConfig {
 	lower := strings.ToLower(username)
 	for i := range streamers {
@@ -71,7 +71,7 @@ func findStreamer(streamers []config.StreamerConfig, username string) *config.St
 	return nil
 }
 
-// findStreamerIndex はユーザー名で配信者のインデックスを検索する。
+// findStreamerIndex はユーザー名で配信者のインデックスを検索する
 func findStreamerIndex(streamers []config.StreamerConfig, username string) int {
 	lower := strings.ToLower(username)
 	for i := range streamers {
@@ -82,7 +82,7 @@ func findStreamerIndex(streamers []config.StreamerConfig, username string) int {
 	return -1
 }
 
-// defaultNotifications は全通知有効のデフォルト設定を返す。
+// defaultNotifications は全通知有効のデフォルト設定を返す
 func defaultNotifications() config.NotificationSettings {
 	return config.NotificationSettings{
 		Online:      true,
@@ -92,7 +92,7 @@ func defaultNotifications() config.NotificationSettings {
 	}
 }
 
-// addStreamer は配信者を追加する。
+// addStreamer は配信者を追加する
 func addStreamer(username string) {
 	cfg, err := config.Load(configPath)
 	if err != nil {
@@ -131,7 +131,7 @@ func addStreamer(username string) {
 	fmt.Printf("%s を追加しました\n", username)
 }
 
-// removeStreamer は配信者を削除する。
+// removeStreamer は配信者を削除する
 func removeStreamer(username string) {
 	cfg, err := config.Load(configPath)
 	if err != nil {
@@ -153,7 +153,7 @@ func removeStreamer(username string) {
 	fmt.Printf("%s を削除しました\n", username)
 }
 
-// listStreamers は登録済み配信者一覧を表示する。
+// listStreamers は登録済み配信者一覧を表示する
 func listStreamers() {
 	cfg, err := config.Load(configPath)
 	if err != nil {
@@ -172,7 +172,7 @@ func listStreamers() {
 	}
 }
 
-// addWebhook は配信者にWebhookを追加する。
+// addWebhook は配信者にWebhookを追加する
 func addWebhook(username string) {
 	cfg, err := config.Load(configPath)
 	if err != nil {
@@ -213,7 +213,7 @@ func addWebhook(username string) {
 	fmt.Printf("%s にWebhookを追加しました (合計: %d件)\n", username, len(streamer.Webhooks))
 }
 
-// removeWebhook は配信者からWebhookを削除する。
+// removeWebhook は配信者からWebhookを削除する
 func removeWebhook(username string) {
 	cfg, err := config.Load(configPath)
 	if err != nil {
@@ -258,7 +258,7 @@ func removeWebhook(username string) {
 	fmt.Printf("Webhookを削除しました (残り: %d件)\n", len(streamer.Webhooks))
 }
 
-// configureWebhook は配信者のWebhook通知設定を変更する。
+// configureWebhook は配信者のWebhook通知設定を変更する
 func configureWebhook(username string) {
 	cfg, err := config.Load(configPath)
 	if err != nil {
@@ -317,7 +317,7 @@ func configureWebhook(username string) {
 	fmt.Printf("\nWebhook %d の設定を更新しました\n", index+1)
 }
 
-// parseYesNo は入力をboolに変換する。空文字列の場合は現在値を返す。
+// parseYesNo は入力をboolに変換し、空文字列の場合は現在値を返す
 func parseYesNo(input string, current bool) bool {
 	if input == "" {
 		return current
@@ -325,7 +325,7 @@ func parseYesNo(input string, current bool) bool {
 	return strings.ToLower(input) == "y"
 }
 
-// boolToYN はboolをy/nに変換する。
+// boolToYN はboolをy/nに変換する
 func boolToYN(b bool) string {
 	if b {
 		return "y"
@@ -333,7 +333,7 @@ func boolToYN(b bool) string {
 	return "n"
 }
 
-// truncateURL はURLを指定長で切り詰める。
+// truncateURL はURLを指定長で切り詰める
 func truncateURL(s string, maxLen int) string {
 	if len(s) <= maxLen {
 		return s
@@ -341,12 +341,12 @@ func truncateURL(s string, maxLen int) string {
 	return s[:maxLen] + "..."
 }
 
-// getExeName は実行ファイル名を返す。
+// getExeName は実行ファイル名を返す
 func getExeName() string {
 	return filepath.Base(os.Args[0])
 }
 
-// printUsage は使い方を表示する。
+// printUsage は使い方を表示する
 func printUsage() {
 	exe := getExeName()
 	fmt.Printf(`
@@ -362,7 +362,7 @@ func printUsage() {
 `, exe, exe, exe, exe, exe, exe, exe, exe)
 }
 
-// promptUsername はユーザー名を対話的に取得する。
+// promptUsername はユーザー名を対話的に取得する
 func promptUsername() string {
 	username := promptInput("ユーザー名: ")
 	if username == "" {
@@ -378,7 +378,7 @@ type menuItem struct {
 	action func()
 }
 
-// interactiveMode は対話モードを実行する。
+// interactiveMode は対話モードを実行する
 func interactiveMode() {
 	items := []menuItem{
 		{key: "1", label: "配信者を追加", action: func() { addStreamer(promptUsername()) }},
@@ -415,7 +415,7 @@ func interactiveMode() {
 	os.Exit(1)
 }
 
-// requireUsername はユーザー名引数が必須であることを検証する。
+// requireUsername はユーザー名引数が必須であることを検証する
 func requireUsername(args []string, index int) string {
 	if index >= len(args) || args[index] == "" {
 		fmt.Fprintln(os.Stderr, "エラー: ユーザー名を指定してください")
@@ -424,7 +424,7 @@ func requireUsername(args []string, index int) string {
 	return args[index]
 }
 
-// Run はCLIを実行する。argsが空の場合は対話モードを起動する。
+// Run はCLIを実行し、argsが空の場合は対話モードを起動する
 func Run(args []string) {
 	if len(args) == 0 {
 		interactiveMode()

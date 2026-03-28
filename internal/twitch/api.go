@@ -14,18 +14,18 @@ import (
 
 const helixBaseURL = "https://api.twitch.tv/helix"
 
-// API はTwitch Helix APIクライアント。
+// API はTwitch Helix APIクライアント
 type API struct {
 	auth     *Auth
 	clientID string
 }
 
-// NewAPI はAPIインスタンスを作成する。
+// NewAPI はAPIインスタンスを作成する
 func NewAPI(auth *Auth, clientID string) *API {
 	return &API{auth: auth, clientID: clientID}
 }
 
-// request はAPIリクエストを実行しレスポンスデータを返す。
+// request はAPIリクエストを実行しレスポンスデータを返す
 func request[T any](ctx context.Context, a *API, endpoint string, params url.Values) ([]T, error) {
 	token, err := a.auth.GetToken(ctx)
 	if err != nil {
@@ -66,7 +66,7 @@ func request[T any](ctx context.Context, a *API, endpoint string, params url.Val
 	return apiResp.Data, nil
 }
 
-// GetUsers はユーザー情報を取得する。返り値はlogin名(小文字)をキーとするmap。
+// GetUsers はユーザー情報を取得し、login名(小文字)をキーとするmapを返す
 func (a *API) GetUsers(ctx context.Context, logins []string) (map[string]User, error) {
 	if len(logins) == 0 {
 		return make(map[string]User), nil
@@ -91,7 +91,7 @@ func (a *API) GetUsers(ctx context.Context, logins []string) (map[string]User, e
 	return result, nil
 }
 
-// GetStreams は配信中のストリーム情報を取得する。返り値はlogin名(小文字)をキーとするmap。
+// GetStreams は配信中のストリーム情報を取得し、login名(小文字)をキーとするmapを返す
 func (a *API) GetStreams(ctx context.Context, userLogins []string) (map[string]Stream, error) {
 	if len(userLogins) == 0 {
 		return make(map[string]Stream), nil
@@ -116,7 +116,7 @@ func (a *API) GetStreams(ctx context.Context, userLogins []string) (map[string]S
 	return result, nil
 }
 
-// GetChannels はチャンネル情報を取得する。返り値はlogin名(小文字)をキーとするmap。
+// GetChannels はチャンネル情報を取得し、login名(小文字)をキーとするmapを返す
 func (a *API) GetChannels(ctx context.Context, broadcasterIDs []string) (map[string]Channel, error) {
 	if len(broadcasterIDs) == 0 {
 		return make(map[string]Channel), nil
@@ -141,7 +141,7 @@ func (a *API) GetChannels(ctx context.Context, broadcasterIDs []string) (map[str
 	return result, nil
 }
 
-// GetLatestVod は最新のアーカイブVODを取得する。存在しない場合はnilを返す。
+// GetLatestVod は最新のアーカイブVODを取得し、存在しない場合はnilを返す
 func (a *API) GetLatestVod(ctx context.Context, userID string) (*Video, error) {
 	params := url.Values{
 		"user_id": {userID},

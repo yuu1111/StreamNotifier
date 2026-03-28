@@ -1,4 +1,4 @@
-// Package discord はDiscord Webhook連携を提供する。
+// Package discord はDiscord Webhook連携を提供する
 package discord
 
 import (
@@ -10,30 +10,30 @@ import (
 	"github.com/yuu1111/StreamNotifier/internal/monitor"
 )
 
-// EmbedField はDiscord Embedのフィールド。
+// EmbedField はDiscord Embedのフィールド
 type EmbedField struct {
 	Name   string `json:"name"`
 	Value  string `json:"value"`
 	Inline bool   `json:"inline,omitempty"`
 }
 
-// EmbedFooter はDiscord Embedのフッター。
+// EmbedFooter はDiscord Embedのフッター
 type EmbedFooter struct {
 	Text string `json:"text"`
 }
 
-// EmbedAuthor はDiscord Embedの作成者情報。
+// EmbedAuthor はDiscord Embedの作成者情報
 type EmbedAuthor struct {
 	Name    string `json:"name"`
 	IconURL string `json:"icon_url,omitempty"`
 }
 
-// EmbedImage はDiscord Embedの画像。
+// EmbedImage はDiscord Embedの画像
 type EmbedImage struct {
 	URL string `json:"url"`
 }
 
-// Embed はDiscord Embed構造。
+// Embed はDiscord Embed構造
 type Embed struct {
 	Title       string       `json:"title"`
 	Description string       `json:"description,omitempty"`
@@ -63,14 +63,14 @@ var titleMap = map[string]string{
 	config.ChangeTitleAndGame: "タイトル・ゲーム変更",
 }
 
-// changeEventTypes はタイトル/ゲーム変更系のイベント種別。
+// changeEventTypes はタイトル/ゲーム変更系のイベント種別
 var changeEventTypes = map[string]bool{
 	config.ChangeTitleChange:  true,
 	config.ChangeGameChange:   true,
 	config.ChangeTitleAndGame: true,
 }
 
-// formatElapsedTime は配信開始からの経過時間を日本語でフォーマットする。
+// formatElapsedTime は配信開始からの経過時間を日本語でフォーマットする
 func formatElapsedTime(startedAt string) string {
 	start, err := time.Parse(time.RFC3339, startedAt)
 	if err != nil {
@@ -96,7 +96,7 @@ func formatElapsedTime(startedAt string) string {
 	return fmt.Sprintf("%d時間%d分前から配信中", hours, mins)
 }
 
-// formatDuration は配信時間をフォーマットする。
+// formatDuration は配信時間をフォーマットする
 func formatDuration(startedAt string) string {
 	start, err := time.Parse(time.RFC3339, startedAt)
 	if err != nil {
@@ -114,13 +114,13 @@ func formatDuration(startedAt string) string {
 	return fmt.Sprintf("%d時間%d分", hours, mins)
 }
 
-// formatTimeJST は時刻をJST HH:MM形式にフォーマットする。
+// formatTimeJST は時刻をJST HH:MM形式にフォーマットする
 func formatTimeJST(t time.Time) string {
 	jst := time.FixedZone("JST", 9*60*60)
 	return t.In(jst).Format("15:04")
 }
 
-// orDefault は空文字列の場合にデフォルト値を返す。
+// orDefault は空文字列の場合にデフォルト値を返す
 func orDefault(s, defaultVal string) string {
 	if s == "" {
 		return defaultVal
@@ -128,7 +128,7 @@ func orDefault(s, defaultVal string) string {
 	return s
 }
 
-// BuildEmbed は変更情報からDiscord Embedを構築する。
+// BuildEmbed は変更情報からDiscord Embedを構築する
 func BuildEmbed(change monitor.DetectedChange) Embed {
 	state := change.CurrentState
 	channelURL := "https://twitch.tv/" + state.Username
