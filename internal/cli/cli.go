@@ -60,18 +60,7 @@ func getEnabledNotificationTypes(n config.NotificationSettings) string {
 	return strings.Join(types, ", ")
 }
 
-// findStreamer はユーザー名で配信者を検索する
-func findStreamer(streamers []config.StreamerConfig, username string) *config.StreamerConfig {
-	lower := strings.ToLower(username)
-	for i := range streamers {
-		if strings.ToLower(streamers[i].Username) == lower {
-			return &streamers[i]
-		}
-	}
-	return nil
-}
-
-// findStreamerIndex はユーザー名で配信者のインデックスを検索する
+// findStreamerIndex はユーザー名で配信者のインデックスを検索する(-1: 未検出)
 func findStreamerIndex(streamers []config.StreamerConfig, username string) int {
 	lower := strings.ToLower(username)
 	for i := range streamers {
@@ -80,6 +69,14 @@ func findStreamerIndex(streamers []config.StreamerConfig, username string) int {
 		}
 	}
 	return -1
+}
+
+// findStreamer はユーザー名で配信者を検索する
+func findStreamer(streamers []config.StreamerConfig, username string) *config.StreamerConfig {
+	if i := findStreamerIndex(streamers, username); i >= 0 {
+		return &streamers[i]
+	}
+	return nil
 }
 
 // defaultNotifications は全通知有効のデフォルト設定を返す

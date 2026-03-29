@@ -107,6 +107,8 @@ type fileHandler struct {
 	ensured bool
 }
 
+var jst = time.FixedZone("JST", 9*60*60)
+
 // ensureDir はログディレクトリを確保する
 func (h *fileHandler) ensureDir() {
 	if h.ensured {
@@ -114,13 +116,13 @@ func (h *fileHandler) ensureDir() {
 	}
 	if err := os.MkdirAll(h.logDir, 0755); err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to create log directory: %v\n", err)
+		return
 	}
 	h.ensured = true
 }
 
 // getDateString はJST日付をYYYY-MM-DD形式で返す
 func getDateString() string {
-	jst := time.FixedZone("JST", 9*60*60)
 	return time.Now().In(jst).Format("2006-01-02")
 }
 

@@ -70,26 +70,31 @@ var changeEventTypes = map[string]bool{
 	config.ChangeTitleAndGame: true,
 }
 
-// formatElapsedTime は配信開始からの経過時間を日本語でフォーマットする
-func formatElapsedTime(startedAt string) string {
+var jst = time.FixedZone("JST", 9*60*60)
+
+// elapsedHoursMinutes はRFC3339タイムスタンプからの経過時間を時・分で返す
+func elapsedHoursMinutes(startedAt string) (hours, mins int, ok bool) {
 	start, err := time.Parse(time.RFC3339, startedAt)
 	if err != nil {
-		return ""
+		return 0, 0, false
 	}
-
 	diff := time.Since(start)
 	if diff < 0 {
+		return 0, 0, false
+	}
+	total := int(diff.Minutes())
+	return total / 60, total % 60, true
+}
+
+// formatElapsedTime は配信開始からの経過時間を日本語でフォーマットする
+func formatElapsedTime(startedAt string) string {
+	hours, mins, ok := elapsedHoursMinutes(startedAt)
+	if !ok {
 		return ""
 	}
-
-	totalMinutes := int(diff.Minutes())
-	if totalMinutes < 1 {
+	if hours == 0 && mins < 1 {
 		return "たった今"
 	}
-
-	hours := totalMinutes / 60
-	mins := totalMinutes % 60
-
 	if hours == 0 {
 		return fmt.Sprintf("%d分前から配信中", mins)
 	}
@@ -98,16 +103,10 @@ func formatElapsedTime(startedAt string) string {
 
 // formatDuration は配信時間をフォーマットする
 func formatDuration(startedAt string) string {
-	start, err := time.Parse(time.RFC3339, startedAt)
-	if err != nil {
+	hours, mins, ok := elapsedHoursMinutes(startedAt)
+	if !ok {
 		return "不明"
 	}
-
-	diff := time.Since(start)
-	totalMinutes := int(diff.Minutes())
-	hours := totalMinutes / 60
-	mins := totalMinutes % 60
-
 	if hours == 0 {
 		return fmt.Sprintf("%d分", mins)
 	}
@@ -116,7 +115,6 @@ func formatDuration(startedAt string) string {
 
 // formatTimeJST は時刻をJST HH:MM形式にフォーマットする
 func formatTimeJST(t time.Time) string {
-	jst := time.FixedZone("JST", 9*60*60)
 	return t.In(jst).Format("15:04")
 }
 

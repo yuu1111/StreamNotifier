@@ -46,24 +46,27 @@ func DetectChanges(oldState *StreamerState, newState StreamerState) []DetectedCh
 		})
 	}
 
-	if oldState.Title != newState.Title && newState.Title != "" {
-		changes = append(changes, DetectedChange{
-			Type:         config.ChangeTitleChange,
-			Streamer:     newState.Username,
-			OldValue:     oldState.Title,
-			NewValue:     newState.Title,
-			CurrentState: newState,
-		})
-	}
+	// タイトル/ゲーム変更は配信中の場合のみ検出する
+	if oldState.IsLive && newState.IsLive {
+		if oldState.Title != newState.Title && newState.Title != "" {
+			changes = append(changes, DetectedChange{
+				Type:         config.ChangeTitleChange,
+				Streamer:     newState.Username,
+				OldValue:     oldState.Title,
+				NewValue:     newState.Title,
+				CurrentState: newState,
+			})
+		}
 
-	if oldState.GameID != newState.GameID {
-		changes = append(changes, DetectedChange{
-			Type:         config.ChangeGameChange,
-			Streamer:     newState.Username,
-			OldValue:     oldState.GameName,
-			NewValue:     newState.GameName,
-			CurrentState: newState,
-		})
+		if oldState.GameID != newState.GameID {
+			changes = append(changes, DetectedChange{
+				Type:         config.ChangeGameChange,
+				Streamer:     newState.Username,
+				OldValue:     oldState.GameName,
+				NewValue:     newState.GameName,
+				CurrentState: newState,
+			})
+		}
 	}
 
 	return changes
