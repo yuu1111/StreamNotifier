@@ -4,7 +4,7 @@ import (
 	"github.com/yuu1111/StreamNotifier/internal/config"
 )
 
-// DetectedChange は検出された変更イベントを表す。
+// DetectedChange は検出された変更イベントを表す
 type DetectedChange struct {
 	Type           config.ChangeType
 	Streamer       string
@@ -20,8 +20,8 @@ type DetectedChange struct {
 	CurrentState   StreamerState
 }
 
-// DetectChanges は新旧状態を比較して変更を検出する。
-// oldStateがnilの場合は初回ポーリングとして空スライスを返す。
+// DetectChanges は新旧状態を比較して変更を検出する
+// oldStateがnilの場合は初回ポーリングとして空スライスを返す
 func DetectChanges(oldState *StreamerState, newState StreamerState) []DetectedChange {
 	if oldState == nil {
 		return nil
@@ -46,24 +46,27 @@ func DetectChanges(oldState *StreamerState, newState StreamerState) []DetectedCh
 		})
 	}
 
-	if oldState.Title != newState.Title && newState.Title != "" {
-		changes = append(changes, DetectedChange{
-			Type:         config.ChangeTitleChange,
-			Streamer:     newState.Username,
-			OldValue:     oldState.Title,
-			NewValue:     newState.Title,
-			CurrentState: newState,
-		})
-	}
+	// タイトル/ゲーム変更は配信中の場合のみ検出する
+	if oldState.IsLive && newState.IsLive {
+		if oldState.Title != newState.Title && newState.Title != "" {
+			changes = append(changes, DetectedChange{
+				Type:         config.ChangeTitleChange,
+				Streamer:     newState.Username,
+				OldValue:     oldState.Title,
+				NewValue:     newState.Title,
+				CurrentState: newState,
+			})
+		}
 
-	if oldState.GameID != newState.GameID {
-		changes = append(changes, DetectedChange{
-			Type:         config.ChangeGameChange,
-			Streamer:     newState.Username,
-			OldValue:     oldState.GameName,
-			NewValue:     newState.GameName,
-			CurrentState: newState,
-		})
+		if oldState.GameID != newState.GameID {
+			changes = append(changes, DetectedChange{
+				Type:         config.ChangeGameChange,
+				Streamer:     newState.Username,
+				OldValue:     oldState.GameName,
+				NewValue:     newState.GameName,
+				CurrentState: newState,
+			})
+		}
 	}
 
 	return changes

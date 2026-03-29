@@ -1,4 +1,4 @@
-// Package config はアプリケーション設定の読み込み・保存・バリデーションを提供する。
+// Package config はアプリケーション設定の読み込み・保存・バリデーションを提供する
 package config
 
 import (
@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-// ChangeType は通知タイプを表す。
+// ChangeType は通知タイプを表す
 type ChangeType = string
 
 const (
@@ -19,7 +19,7 @@ const (
 	ChangeTitleAndGame     ChangeType = "titleAndGameChange"
 )
 
-// LogLevel はログ出力レベルを表す。
+// LogLevel はログ出力レベルを表す
 type LogLevel = string
 
 const (
@@ -30,17 +30,17 @@ const (
 )
 
 const (
-	// WebhookURLPrefix はDiscord Webhook URLの必須プレフィックス。
+	// WebhookURLPrefix はDiscord Webhook URLの必須プレフィックス
 	WebhookURLPrefix = "https://discord.com/api/webhooks/"
 
-	// ThumbnailWidth はサムネイル画像の幅。
+	// ThumbnailWidth はサムネイル画像の幅
 	ThumbnailWidth = "440"
 
-	// ThumbnailHeight はサムネイル画像の高さ。
+	// ThumbnailHeight はサムネイル画像の高さ
 	ThumbnailHeight = "248"
 )
 
-// NotificationSettings は通知種別ごとの有効/無効設定。
+// NotificationSettings は通知種別ごとの有効/無効設定
 type NotificationSettings struct {
 	Online      bool `json:"online"`
 	Offline     bool `json:"offline"`
@@ -48,36 +48,36 @@ type NotificationSettings struct {
 	GameChange  bool `json:"gameChange"`
 }
 
-// WebhookConfig はWebhook設定(URLと通知設定)。
+// WebhookConfig はWebhook設定(URLと通知設定)
 type WebhookConfig struct {
 	Name          string               `json:"name,omitempty"`
 	URL           string               `json:"url"`
 	Notifications NotificationSettings `json:"notifications"`
 }
 
-// StreamerConfig は配信者ごとの設定。
+// StreamerConfig は配信者ごとの設定
 type StreamerConfig struct {
 	Username string          `json:"username"`
 	Webhooks []WebhookConfig `json:"webhooks"`
 }
 
-// TwitchConfig はTwitch API認証設定。
+// TwitchConfig はTwitch API認証設定
 type TwitchConfig struct {
 	ClientID     string `json:"clientId"`
 	ClientSecret string `json:"clientSecret"`
 }
 
-// PollingConfig はポーリング間隔設定。
+// PollingConfig はポーリング間隔設定
 type PollingConfig struct {
 	IntervalSeconds int `json:"intervalSeconds"`
 }
 
-// LogConfig はログ設定。
+// LogConfig はログ設定
 type LogConfig struct {
 	Level LogLevel `json:"level"`
 }
 
-// Config はアプリケーション全体の設定。
+// Config はアプリケーション全体の設定
 type Config struct {
 	Twitch    TwitchConfig     `json:"twitch"`
 	Polling   PollingConfig    `json:"polling"`
@@ -85,7 +85,7 @@ type Config struct {
 	Log       LogConfig        `json:"log"`
 }
 
-// Load は指定パスからconfig.jsonを読み込みバリデーションする。
+// Load は指定パスからconfig.jsonを読み込みバリデーションする
 func Load(path string) (*Config, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -104,7 +104,7 @@ func Load(path string) (*Config, error) {
 	return &cfg, nil
 }
 
-// Save は設定をJSON形式で指定パスに保存する。
+// Save は設定をJSON形式で指定パスに保存する
 func Save(path string, cfg *Config) error {
 	data, err := json.MarshalIndent(cfg, "", "  ")
 	if err != nil {
@@ -113,7 +113,7 @@ func Save(path string, cfg *Config) error {
 	return os.WriteFile(path, data, 0644)
 }
 
-// Validate は設定のバリデーションを行う。
+// Validate は設定のバリデーションを行う
 func (c *Config) Validate() error {
 	if c.Twitch.ClientID == "" {
 		return fmt.Errorf("twitch.clientIdは必須です")
@@ -152,7 +152,7 @@ func (c *Config) Validate() error {
 	return nil
 }
 
-// IsNotificationEnabled は変更タイプが通知設定で有効かどうかを判定する。
+// IsNotificationEnabled は変更タイプが通知設定で有効かどうかを判定する
 func IsNotificationEnabled(changeType ChangeType, n NotificationSettings) bool {
 	switch changeType {
 	case ChangeOnline:

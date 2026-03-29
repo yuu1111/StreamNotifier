@@ -8,24 +8,23 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
-	"sync"
 	"time"
 )
 
-// WebhookPayload はDiscord Webhookのペイロード。
+// WebhookPayload はDiscord Webhookのペイロード
 type WebhookPayload struct {
 	Embeds    []Embed `json:"embeds"`
 	Username  string  `json:"username,omitempty"`
 	AvatarURL string  `json:"avatar_url,omitempty"`
 }
 
-// StreamerInfo は配信者情報(Webhook表示用)。
+// StreamerInfo は配信者情報(Webhook表示用)
 type StreamerInfo struct {
 	DisplayName     string
 	ProfileImageURL string
 }
 
-// SendWebhook は単一のWebhookにEmbedを送信する。
+// SendWebhook は単一のWebhookにEmbedを送信する
 func SendWebhook(ctx context.Context, webhookURL string, embed Embed, streamer StreamerInfo) error {
 	payload := WebhookPayload{
 		Embeds:    []Embed{embed},
@@ -64,25 +63,7 @@ func SendWebhook(ctx context.Context, webhookURL string, embed Embed, streamer S
 	return nil
 }
 
-// SendToMultipleWebhooks は複数のWebhookにEmbedを並列送信する。
-func SendToMultipleWebhooks(ctx context.Context, webhookURLs []string, embed Embed, streamer StreamerInfo) {
-	var wg sync.WaitGroup
-	for i, url := range webhookURLs {
-		wg.Add(1)
-		go func(idx int, u string) {
-			defer wg.Done()
-			if err := SendWebhook(ctx, u, embed, streamer); err != nil {
-				slog.Error("Webhook送信エラー",
-					"index", idx+1,
-					"total", len(webhookURLs),
-					"error", err)
-			}
-		}(i, url)
-	}
-	wg.Wait()
-}
-
-// truncate は文字列を指定長で切り詰める。
+// truncate は文字列を指定長で切り詰める
 func truncate(s string, maxLen int) string {
 	if len(s) <= maxLen {
 		return s

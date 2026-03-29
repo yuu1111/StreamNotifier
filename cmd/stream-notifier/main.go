@@ -1,4 +1,4 @@
-// Package main はStream Notifierのエントリーポイントを提供する。
+// Package main はStream Notifierのエントリーポイントを提供する
 package main
 
 import (
@@ -40,7 +40,7 @@ var levelColors = map[slog.Level]string{
 	slog.LevelError: colorRed,
 }
 
-// consoleHandler はANSI色付きのコンソール出力ハンドラ。
+// consoleHandler はANSI色付きのコンソール出力ハンドラ
 type consoleHandler struct {
 	level slog.Level
 	mu    sync.Mutex
@@ -99,7 +99,7 @@ func (h *consoleHandler) WithGroup(name string) slog.Handler {
 	return h
 }
 
-// fileHandler はJSON形式のファイル出力ハンドラ。
+// fileHandler はJSON形式のファイル出力ハンドラ
 type fileHandler struct {
 	level  slog.Level
 	logDir string
@@ -107,20 +107,22 @@ type fileHandler struct {
 	ensured bool
 }
 
-// ensureDir はログディレクトリを確保する。
+var jst = time.FixedZone("JST", 9*60*60)
+
+// ensureDir はログディレクトリを確保する
 func (h *fileHandler) ensureDir() {
 	if h.ensured {
 		return
 	}
 	if err := os.MkdirAll(h.logDir, 0755); err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to create log directory: %v\n", err)
+		return
 	}
 	h.ensured = true
 }
 
-// getDateString はJST日付をYYYY-MM-DD形式で返す。
+// getDateString はJST日付をYYYY-MM-DD形式で返す
 func getDateString() string {
-	jst := time.FixedZone("JST", 9*60*60)
 	return time.Now().In(jst).Format("2006-01-02")
 }
 
@@ -184,12 +186,12 @@ func (h *fileHandler) WithGroup(name string) slog.Handler {
 	return h
 }
 
-// jsonMarshal はJSON marshalerのラッパー。
+// jsonMarshal はJSON marshalerのラッパー
 func jsonMarshal(v any) ([]byte, error) {
 	return json.Marshal(v)
 }
 
-// multiHandler は複数のslog.Handlerに同時出力する。
+// multiHandler は複数のslog.Handlerに同時出力する
 type multiHandler struct {
 	handlers []slog.Handler
 }
@@ -230,7 +232,7 @@ func (m *multiHandler) WithGroup(name string) slog.Handler {
 	return &multiHandler{handlers: handlers}
 }
 
-// parseSlogLevel はログレベル文字列をslog.Levelに変換する。
+// parseSlogLevel はログレベル文字列をslog.Levelに変換する
 func parseSlogLevel(level string) slog.Level {
 	switch level {
 	case config.LogDebug:
@@ -246,7 +248,7 @@ func parseSlogLevel(level string) slog.Level {
 	}
 }
 
-// setupLogger はslogのグローバルロガーをセットアップする。
+// setupLogger はslogのグローバルロガーをセットアップする
 func setupLogger(level string) {
 	slogLevel := parseSlogLevel(level)
 
@@ -266,7 +268,10 @@ func startMonitor() error {
 
 	slog.Info("Stream Notifier 起動中...")
 
-	cfg, err := config.Load("./config.json")
+	const configPath = "./config.json"
+	const statePath = "./data/state.json"
+
+	cfg, err := config.Load(configPath)
 	if err != nil {
 		return err
 	}
@@ -279,7 +284,7 @@ func startMonitor() error {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	poller := monitor.NewPoller(api, cfg, func(changes []monitor.DetectedChange, sc config.StreamerConfig) {
+	poller := monitor.NewPoller(api, cfg, configPath, statePath, func(changes []monitor.DetectedChange, sc config.StreamerConfig) {
 		for _, change := range changes {
 			embed := discord.BuildEmbed(change)
 			streamerInfo := discord.StreamerInfo{
