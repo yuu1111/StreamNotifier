@@ -16,9 +16,17 @@ import (
 // ChangeHandler は変更検出時に呼び出されるコールバック型
 type ChangeHandler func(changes []DetectedChange, streamerConfig config.StreamerConfig)
 
+// TwitchAPI はPollerが必要とするTwitch APIの操作を定義するinterface
+type TwitchAPI interface {
+	GetUsers(ctx context.Context, logins []string) (map[string]twitch.User, error)
+	GetStreams(ctx context.Context, userLogins []string) (map[string]twitch.Stream, error)
+	GetChannels(ctx context.Context, broadcasterIDs []string) (map[string]twitch.Channel, error)
+	GetLatestVod(ctx context.Context, userID string) (*twitch.Video, error)
+}
+
 // Poller は配信者の状態を定期的にポーリングし変更を検出する
 type Poller struct {
-	api           *twitch.API
+	api           TwitchAPI
 	cfg           *config.Config
 	configPath    string
 	statePath     string
@@ -26,10 +34,13 @@ type Poller struct {
 	stateManager  *StateManager
 	userCache     map[string]twitch.User
 	lastConfigMod time.Time
+	// emptyPending はTitle/GameIDが両方空になった配信者を一時保留する
+	// (Twitch APIの一過性の空レスポンスを誤検出しないための2回確認用)
+	emptyPending map[string]bool
 }
 
 // NewPoller はPollerインスタンスを作成する
-func NewPoller(api *twitch.API, cfg *config.Config, configPath string, statePath string, onChanges ChangeHandler) *Poller {
+func NewPoller(api TwitchAPI, cfg *config.Config, configPath string, statePath string, onChanges ChangeHandler) *Poller {
 	return &Poller{
 		api:          api,
 		cfg:          cfg,
@@ -38,6 +49,7 @@ func NewPoller(api *twitch.API, cfg *config.Config, configPath string, statePath
 		onChanges:    onChanges,
 		stateManager: NewStateManager(),
 		userCache:    make(map[string]twitch.User),
+		emptyPending: make(map[string]bool),
 	}
 }
 
@@ -317,6 +329,19 @@ func (p *Poller) processStreamer(
 	newState := buildStreamerState(user, streamPtr, channelPtr)
 	oldState := p.stateManager.GetState(key)
 	isInitialPoll := oldState == nil
+
+	// Title/GameIDが両方空になった場合は一過性のAPIエラーの可能性があるため、
+	// 次のポーリングで同じ状態が継続したら確定として通知する
+	if oldState != nil && oldState.IsLive && newState.IsLive &&
+		newState.Title == "" && newState.GameID == "" &&
+		(oldState.Title != "" || oldState.GameID != "") {
+		if !p.emptyPending[key] {
+			p.emptyPending[key] = true
+			slog.Info("Title/Gameが両方空、次回ポーリングで確認", "streamer", newState.DisplayName)
+			return false
+		}
+	}
+	delete(p.emptyPending, key)
 
 	if isInitialPoll {
 		status := "オフライン"
