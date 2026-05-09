@@ -293,7 +293,9 @@ func TestPoller_Poll_RestoresStateOnRestart(t *testing.T) {
 		},
 	}
 	data, _ := json.MarshalIndent(previousState, "", "  ")
-	os.WriteFile(statePath, data, 0644)
+	if err := os.WriteFile(statePath, data, 0644); err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
 
 	api := newMockAPI()
 	api.users["streamer1"] = twitch.User{ID: "1", Login: "streamer1", DisplayName: "Streamer1"}
@@ -337,7 +339,9 @@ func TestPoller_ConfigReload_AddsAndRemovesStreamers(t *testing.T) {
 	// 初期config: streamer1のみ
 	initialCfg := newTestConfig("streamer1")
 	data, _ := json.MarshalIndent(initialCfg, "", "  ")
-	os.WriteFile(configPath, data, 0644)
+	if err := os.WriteFile(configPath, data, 0644); err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
 
 	api := newMockAPI()
 	api.users["streamer1"] = twitch.User{ID: "1", Login: "streamer1", DisplayName: "Streamer1"}
@@ -355,7 +359,9 @@ func TestPoller_ConfigReload_AddsAndRemovesStreamers(t *testing.T) {
 	updatedCfg := newTestConfig("streamer2")
 	updatedCfg.Polling.IntervalSeconds = 20
 	data, _ = json.MarshalIndent(updatedCfg, "", "  ")
-	os.WriteFile(configPath, data, 0644)
+	if err := os.WriteFile(configPath, data, 0644); err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
 
 	// lastConfigModを過去に設定してリロードを強制
 	poller.lastConfigMod = time.Time{}
@@ -394,7 +400,9 @@ func TestPoller_ConfigReload_NoChangeWhenFileUnmodified(t *testing.T) {
 
 	cfg := newTestConfig("streamer1")
 	data, _ := json.MarshalIndent(cfg, "", "  ")
-	os.WriteFile(configPath, data, 0644)
+	if err := os.WriteFile(configPath, data, 0644); err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
 
 	api := newMockAPI()
 
