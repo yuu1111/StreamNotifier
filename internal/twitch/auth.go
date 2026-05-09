@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-// Auth はTwitch Client Credentials認証を管理する。
+// Auth はTwitch Client Credentials認証を管理する
 type Auth struct {
 	clientID     string
 	clientSecret string
@@ -23,7 +23,7 @@ type Auth struct {
 	expiresAt   time.Time
 }
 
-// NewAuth はAuthインスタンスを作成する。
+// NewAuth はAuthインスタンスを作成する
 func NewAuth(clientID, clientSecret string) *Auth {
 	return &Auth{
 		clientID:     clientID,
@@ -31,7 +31,7 @@ func NewAuth(clientID, clientSecret string) *Auth {
 	}
 }
 
-// GetToken は有効なアクセストークンを返す。期限切れ間近なら自動更新する。
+// GetToken は有効なアクセストークンを返し、期限切れ間近なら自動更新する
 func (a *Auth) GetToken(ctx context.Context) (string, error) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
@@ -44,7 +44,7 @@ func (a *Auth) GetToken(ctx context.Context) (string, error) {
 	return a.refreshToken(ctx)
 }
 
-// refreshToken はClient Credentials Flowでトークンを新規取得する。
+// refreshToken はClient Credentials Flowでトークンを新規取得する
 func (a *Auth) refreshToken(ctx context.Context) (string, error) {
 	slog.Debug("Twitchアクセストークンを取得中...")
 

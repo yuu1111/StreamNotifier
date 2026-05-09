@@ -13,6 +13,9 @@ dist/
 logs/
 *.log
 
+# State data
+data/
+
 # Config (contains secrets)
 config.json
 

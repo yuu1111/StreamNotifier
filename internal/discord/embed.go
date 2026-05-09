@@ -1,4 +1,4 @@
-// Package discord はDiscord Webhook連携を提供する。
+// Package discord はDiscord Webhook連携を提供する
 package discord
 
 import (
@@ -10,30 +10,30 @@ import (
 	"github.com/yuu1111/StreamNotifier/internal/monitor"
 )
 
-// EmbedField はDiscord Embedのフィールド。
+// EmbedField はDiscord Embedのフィールド
 type EmbedField struct {
 	Name   string `json:"name"`
 	Value  string `json:"value"`
 	Inline bool   `json:"inline,omitempty"`
 }
 
-// EmbedFooter はDiscord Embedのフッター。
+// EmbedFooter はDiscord Embedのフッター
 type EmbedFooter struct {
 	Text string `json:"text"`
 }
 
-// EmbedAuthor はDiscord Embedの作成者情報。
+// EmbedAuthor はDiscord Embedの作成者情報
 type EmbedAuthor struct {
 	Name    string `json:"name"`
 	IconURL string `json:"icon_url,omitempty"`
 }
 
-// EmbedImage はDiscord Embedの画像。
+// EmbedImage はDiscord Embedの画像
 type EmbedImage struct {
 	URL string `json:"url"`
 }
 
-// Embed はDiscord Embed構造。
+// Embed はDiscord Embed構造
 type Embed struct {
 	Title       string       `json:"title"`
 	Description string       `json:"description,omitempty"`
@@ -63,64 +63,62 @@ var titleMap = map[string]string{
 	config.ChangeTitleAndGame: "タイトル・ゲーム変更",
 }
 
-// changeEventTypes はタイトル/ゲーム変更系のイベント種別。
+// changeEventTypes はタイトル/ゲーム変更系のイベント種別
 var changeEventTypes = map[string]bool{
 	config.ChangeTitleChange:  true,
 	config.ChangeGameChange:   true,
 	config.ChangeTitleAndGame: true,
 }
 
-// formatElapsedTime は配信開始からの経過時間を日本語でフォーマットする。
-func formatElapsedTime(startedAt string) string {
+var jst = time.FixedZone("JST", 9*60*60)
+
+// elapsedHoursMinutes はRFC3339タイムスタンプからの経過時間を時・分で返す
+func elapsedHoursMinutes(startedAt string) (hours, mins int, ok bool) {
 	start, err := time.Parse(time.RFC3339, startedAt)
 	if err != nil {
-		return ""
+		return 0, 0, false
 	}
-
 	diff := time.Since(start)
 	if diff < 0 {
+		return 0, 0, false
+	}
+	total := int(diff.Minutes())
+	return total / 60, total % 60, true
+}
+
+// formatElapsedTime は配信開始からの経過時間を日本語でフォーマットする
+func formatElapsedTime(startedAt string) string {
+	hours, mins, ok := elapsedHoursMinutes(startedAt)
+	if !ok {
 		return ""
 	}
-
-	totalMinutes := int(diff.Minutes())
-	if totalMinutes < 1 {
+	if hours == 0 && mins < 1 {
 		return "たった今"
 	}
-
-	hours := totalMinutes / 60
-	mins := totalMinutes % 60
-
 	if hours == 0 {
 		return fmt.Sprintf("%d分前から配信中", mins)
 	}
 	return fmt.Sprintf("%d時間%d分前から配信中", hours, mins)
 }
 
-// formatDuration は配信時間をフォーマットする。
+// formatDuration は配信時間をフォーマットする
 func formatDuration(startedAt string) string {
-	start, err := time.Parse(time.RFC3339, startedAt)
-	if err != nil {
+	hours, mins, ok := elapsedHoursMinutes(startedAt)
+	if !ok {
 		return "不明"
 	}
-
-	diff := time.Since(start)
-	totalMinutes := int(diff.Minutes())
-	hours := totalMinutes / 60
-	mins := totalMinutes % 60
-
 	if hours == 0 {
 		return fmt.Sprintf("%d分", mins)
 	}
 	return fmt.Sprintf("%d時間%d分", hours, mins)
 }
 
-// formatTimeJST は時刻をJST HH:MM形式にフォーマットする。
+// formatTimeJST は時刻をJST HH:MM形式にフォーマットする
 func formatTimeJST(t time.Time) string {
-	jst := time.FixedZone("JST", 9*60*60)
 	return t.In(jst).Format("15:04")
 }
 
-// orDefault は空文字列の場合にデフォルト値を返す。
+// orDefault は空文字列の場合にデフォルト値を返す
 func orDefault(s, defaultVal string) string {
 	if s == "" {
 		return defaultVal
@@ -128,7 +126,7 @@ func orDefault(s, defaultVal string) string {
 	return s
 }
 
-// BuildEmbed は変更情報からDiscord Embedを構築する。
+// BuildEmbed は変更情報からDiscord Embedを構築する
 func BuildEmbed(change monitor.DetectedChange) Embed {
 	state := change.CurrentState
 	channelURL := "https://twitch.tv/" + state.Username
