@@ -169,6 +169,7 @@ func (p *Poller) checkConfigReload(ctx context.Context) time.Duration {
 	for name := range oldStreamers {
 		if !newStreamers[name] {
 			delete(p.userCache, name)
+			delete(p.emptyPending, name)
 			p.stateManager.DeleteState(name)
 			slog.Info("配信者を削除", "username", name)
 		}
