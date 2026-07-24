@@ -281,9 +281,27 @@ func startMonitor() error {
 	auth := twitch.NewAuth(cfg.Twitch.ClientID, cfg.Twitch.ClientSecret)
 	api := twitch.NewAPI(auth, cfg.Twitch.ClientID)
 
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer stop()
-	go watchStopInput(os.Stdin, stop)
+	signalCtx, stopSignals := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stopSignals()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	var shutdownOnce sync.Once
+	requestShutdown := func() {
+		shutdownOnce.Do(func() {
+			slog.Info("Application shutdown started")
+			cancel()
+		})
+	}
+	go func() {
+		select {
+		case <-signalCtx.Done():
+			requestShutdown()
+		case <-ctx.Done():
+		}
+	}()
+	go watchStopInput(os.Stdin, requestShutdown)
 
 	poller := monitor.NewPoller(api, cfg, configPath, statePath, func(changes []monitor.DetectedChange, sc config.StreamerConfig) {
 		for _, change := range changes {
@@ -316,11 +334,6 @@ func startMonitor() error {
 			}
 		}
 	})
-
-	go func() {
-		<-ctx.Done()
-		slog.Info("Application shutdown started")
-	}()
 
 	err = poller.Run(ctx)
 	if ctx.Err() != nil {
