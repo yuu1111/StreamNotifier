@@ -1,0 +1,37 @@
+{
+	"meta": {
+		"version": "PTDL_v2"
+	},
+	"name": "Stream Notifier",
+	"author": "yuu1111",
+	"description": "Twitch stream status monitor and Discord webhook notifier",
+	"features": [],
+	"docker_images": {
+		"Stream Notifier": "ghcr.io/yuu1111/streamnotifier:latest"
+	},
+	"file_denylist": [],
+	"startup": "/opt/stream-notifier/stream-notifier",
+	"config": {
+		"files": {},
+		"startup": {
+			"done": "Application ready"
+		},
+		"logs": {},
+		"stop": "^C"
+	},
+	"scripts": {
+		"installation": {
+			"container": "alpine:3.23",
+			"entrypoint": "sh",
+			"script": ""
+		}
+	},
+	"variables": [],
+	"_featherpanel": {
+		"spell_metadata": {
+			"default_docker_image": "ghcr.io/yuu1111/streamnotifier:latest",
+			"script_is_privileged": false,
+			"force_outgoing_ip": false
+		}
+	}
+}

@@ -1,0 +1,71 @@
+name: Container
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: yuu1111/streamnotifier
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.5'
+      - run: go mod download
+      - run: go vet ./...
+      - run: go test ./...
+      - run: go build ./cmd/stream-notifier
+
+  publish:
+    needs: quality
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: metadata
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest
+            type=sha,format=long
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.metadata.outputs.tags }}
+          labels: ${{ steps.metadata.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Deploy to FeatherPanel
+        env:
+          FEATHERPANEL_URL: ${{ secrets.FEATHERPANEL_URL }}
+          FEATHERPANEL_API_KEY: ${{ secrets.FEATHERPANEL_API_KEY }}
+          FEATHERPANEL_SERVER_ID: ${{ secrets.FEATHERPANEL_SERVER_ID }}
+        run: |
+          if [ -z "$FEATHERPANEL_SERVER_ID" ]; then
+            echo "FeatherPanel server is not created yet; skipping initial deploy"
+            exit 0
+          fi
+          test -n "$FEATHERPANEL_URL"
+          test -n "$FEATHERPANEL_API_KEY"
+          curl --fail --silent --show-error --output /dev/null \
+            --request POST \
+            --header "Authorization: Bearer $FEATHERPANEL_API_KEY" \
+            --header "Accept: application/json" \
+            "$FEATHERPANEL_URL/api/user/servers/$FEATHERPANEL_SERVER_ID/power/restart"

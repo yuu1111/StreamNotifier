@@ -2,6 +2,7 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -101,9 +102,9 @@ func (h *consoleHandler) WithGroup(name string) slog.Handler {
 
 // fileHandler はJSON形式のファイル出力ハンドラ
 type fileHandler struct {
-	level  slog.Level
-	logDir string
-	mu     sync.Mutex
+	level   slog.Level
+	logDir  string
+	mu      sync.Mutex
 	ensured bool
 }
 
@@ -249,13 +250,13 @@ func parseSlogLevel(level string) slog.Level {
 }
 
 // setupLogger はslogのグローバルロガーをセットアップする
-func setupLogger(level string) {
+func setupLogger(level, logDir string) {
 	slogLevel := parseSlogLevel(level)
 
 	handler := &multiHandler{
 		handlers: []slog.Handler{
 			&consoleHandler{level: slogLevel, w: os.Stdout},
-			&fileHandler{level: slogLevel, logDir: "./logs"},
+			&fileHandler{level: slogLevel, logDir: logDir},
 		},
 	}
 
@@ -268,21 +269,21 @@ func startMonitor() error {
 
 	slog.Info("Stream Notifier 起動中...")
 
-	const configPath = "./config.json"
-	const statePath = "./data/state.json"
+	configPath, logDir, statePath := resolveRuntimePaths()
 
 	cfg, err := config.Load(configPath)
 	if err != nil {
 		return err
 	}
 
-	setupLogger(cfg.Log.Level)
+	setupLogger(cfg.Log.Level, logDir)
 
 	auth := twitch.NewAuth(cfg.Twitch.ClientID, cfg.Twitch.ClientSecret)
 	api := twitch.NewAPI(auth, cfg.Twitch.ClientID)
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
+	go watchStopInput(os.Stdin, stop)
 
 	poller := monitor.NewPoller(api, cfg, configPath, statePath, func(changes []monitor.DetectedChange, sc config.StreamerConfig) {
 		for _, change := range changes {
@@ -316,7 +317,64 @@ func startMonitor() error {
 		}
 	})
 
-	return poller.Run(ctx)
+	go func() {
+		<-ctx.Done()
+		slog.Info("Application shutdown started")
+	}()
+
+	err = poller.Run(ctx)
+	if ctx.Err() != nil {
+		slog.Info("Application shutdown complete")
+	}
+	return err
+}
+
+func resolveRuntimePaths() (configPath, logDir, statePath string) {
+	configPath = os.Getenv("STREAM_NOTIFIER_CONFIG")
+	if configPath == "" {
+		configPath = "./config.json"
+		if _, err := os.Stat(configPath); os.IsNotExist(err) {
+			if _, legacyErr := os.Stat("/app/config.json"); legacyErr == nil {
+				configPath = "/app/config.json"
+			}
+		}
+	}
+
+	legacyRuntime := configPath == "/app/config.json"
+	logDir = os.Getenv("STREAM_NOTIFIER_LOG_DIR")
+	if logDir == "" {
+		if legacyRuntime {
+			logDir = "/app/logs"
+		} else {
+			logDir = "./logs"
+		}
+	}
+	statePath = os.Getenv("STREAM_NOTIFIER_STATE_PATH")
+	if statePath == "" {
+		if legacyRuntime {
+			statePath = "/app/data/state.json"
+		} else {
+			statePath = "./data/state.json"
+		}
+	}
+	return configPath, logDir, statePath
+}
+
+// watchStopInput はFeatherPanelがstdinへ送る制御文字または^Cを終了要求へ変換する。
+func watchStopInput(input io.Reader, cancel context.CancelFunc) {
+	reader := bufio.NewReader(input)
+	var previous byte
+	for {
+		current, err := reader.ReadByte()
+		if err != nil {
+			return
+		}
+		if current == 0x03 || (previous == '^' && current == 'C') {
+			cancel()
+			return
+		}
+		previous = current
+	}
 }
 
 func main() {
@@ -325,7 +383,8 @@ func main() {
 	// 引数なし or "run" → 監視開始
 	if len(args) == 0 || args[0] == "run" {
 		// 起動前にデフォルトロガーをセットアップ(設定読み込み前のログ用)
-		setupLogger(config.LogInfo)
+		_, logDir, _ := resolveRuntimePaths()
+		setupLogger(config.LogInfo, logDir)
 
 		if err := startMonitor(); err != nil {
 			slog.Error("致命的なエラー", "error", err)

@@ -71,6 +71,10 @@ func (p *Poller) Run(ctx context.Context) error {
 		return err
 	}
 
+	slog.Info("Application ready",
+		"interval", p.cfg.Polling.IntervalSeconds,
+		"streamers", len(p.cfg.Streamers))
+
 	p.poll(ctx)
 
 	interval := time.Duration(p.cfg.Polling.IntervalSeconds) * time.Second
@@ -358,8 +362,10 @@ func (p *Poller) processStreamer(
 
 	detectedChanges := DetectChanges(oldState, newState)
 
-	// 初回ポーリング時に配信中であればOnline通知を追加
-	if isInitialPoll && newState.IsLive {
+	// 初回ポーリング時に配信中であればOnline通知を追加する。
+	// 旧Coolify環境からの移行中は、状態ファイルがない再起動による重複通知を抑止できる。
+	suppressInitialOnline := strings.EqualFold(os.Getenv("STREAM_NOTIFIER_SUPPRESS_INITIAL_ONLINE"), "true")
+	if isInitialPoll && newState.IsLive && !suppressInitialOnline {
 		detectedChanges = append(detectedChanges, DetectedChange{
 			Type:         config.ChangeOnline,
 			Streamer:     newState.Username,

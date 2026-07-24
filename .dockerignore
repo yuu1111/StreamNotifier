@@ -3,7 +3,10 @@
 .claude
 *.md
 !config.example.json
+!deploy/featherpanel/entrypoint.sh
 logs/
+data/
 config.json
+deploy/featherpanel/*.env
 Makefile
 .golangci.yml
