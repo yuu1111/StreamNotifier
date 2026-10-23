@@ -27,7 +27,7 @@ if ([string]::IsNullOrWhiteSpace($PanelEnvFile)) {
 }
 
 $panel = Read-DotEnv $PanelEnvFile
-foreach ($name in @("FEATHERPANEL_URL", "FEATHERPANEL_API_PUBLIC_KEY")) {
+foreach ($name in @("FEATHERPANEL_URL", "FEATHERPANEL_API_PRIVATE_KEY")) {
 	if ([string]::IsNullOrWhiteSpace($panel[$name])) {
 		throw "$name is missing"
 	}
@@ -35,7 +35,7 @@ foreach ($name in @("FEATHERPANEL_URL", "FEATHERPANEL_API_PUBLIC_KEY")) {
 
 $baseUrl = $panel.FEATHERPANEL_URL.TrimEnd("/")
 $headers = @{
-	Authorization = "Bearer $($panel.FEATHERPANEL_API_PUBLIC_KEY)"
+	Authorization = "Bearer $($panel.FEATHERPANEL_API_PRIVATE_KEY)"
 	Accept        = "application/json"
 }
 
