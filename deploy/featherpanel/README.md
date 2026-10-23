@@ -28,7 +28,7 @@ pwsh ./deploy/featherpanel/deploy.ps1 `
 - `FEATHERPANEL_API_KEY`
 - `FEATHERPANEL_SERVER_ID`（UUID short）
 
-以後はmainへのpushでimageをpublishし、FeatherPanel serverをrestartする。
+以後はmainへのpushでimageをpublishし、FeatherPanel serverをrestartする。restartの成功後、GHCRは`latest`と直近3つのcommit SHA世代を保持し、古い世代に付随する未タグmanifestとprovenanceも削除する。
 
 ## 停止
 
