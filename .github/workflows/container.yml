@@ -56,23 +56,23 @@ jobs:
           labels: ${{ steps.metadata.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-      - name: Deploy to FeatherPanel
+      - name: Deploy with Dockhand
         env:
-          FEATHERPANEL_URL: ${{ secrets.FEATHERPANEL_URL }}
-          FEATHERPANEL_API_KEY: ${{ secrets.FEATHERPANEL_API_KEY }}
-          FEATHERPANEL_SERVER_ID: ${{ secrets.FEATHERPANEL_SERVER_ID }}
+          DOCKHAND_WEBHOOK_URL: ${{ vars.DOCKHAND_WEBHOOK_URL }}
+          DOCKHAND_WEBHOOK_SECRET: ${{ secrets.DOCKHAND_WEBHOOK_SECRET }}
         run: |
-          if [ -z "$FEATHERPANEL_SERVER_ID" ]; then
-            echo "FeatherPanel server is not created yet; skipping initial deploy"
-            exit 0
-          fi
-          test -n "$FEATHERPANEL_URL"
-          test -n "$FEATHERPANEL_API_KEY"
-          curl --fail --silent --show-error --output /dev/null \
+          test -n "$DOCKHAND_WEBHOOK_URL"
+          test -n "$DOCKHAND_WEBHOOK_SECRET"
+          body='{}'
+          signature="sha256=$(printf '%s' "$body" | openssl dgst -sha256 -hmac "$DOCKHAND_WEBHOOK_SECRET" | awk '{print $NF}')"
+          response=$(curl --fail-with-body --silent --show-error --max-time 900 \
             --request POST \
-            --header "Authorization: Bearer $FEATHERPANEL_API_KEY" \
-            --header "Accept: application/json" \
-            "$FEATHERPANEL_URL/api/user/servers/$FEATHERPANEL_SERVER_ID/power/restart"
+            --header "Content-Type: application/json" \
+            --header "X-Hub-Signature-256: $signature" \
+            --data "$body" \
+            "$DOCKHAND_WEBHOOK_URL")
+          echo "$response" | jq .
+          echo "$response" | jq -e '.success == true' > /dev/null
       - name: Clean up old GHCR versions
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
